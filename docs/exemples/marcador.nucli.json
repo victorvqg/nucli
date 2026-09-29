@@ -1,0 +1,37 @@
+{
+  "versio": 1,
+  "idioma": "ca",
+  "branca_base": "main",
+  "docs": {
+    "estat":        "docs/ESTAT.md",
+    "decisions":    {"cami": "DECISIONS.md", "format": "data"},
+    "trampes":      "docs/TRAMPES.md",
+    "convencions":  "CLAUDE.md#Convencions",
+    "arquitectura": "INFORME_TECNIC.md",
+    "adoptats": [
+      {"cami": "TASQUES.md",      "prefix": "mt"},
+      {"cami": "PROPOSTES.md",    "prefix": "mp"},
+      {"cami": "docs/DISSENY.md", "prefix": "md"}
+    ]
+  },
+  "tasques": {"fitxer": "TASQUES.md", "prefix": "mt"},
+  "checks": {
+    "lint":       {"ordre": "bash scripts/check.sh"},
+    "test":       {"ordre": "cd scraper && \"$NUCLI_ARREL/.venv/bin/python\" -m unittest discover -s tests"},
+    "smoke":      {"ordre": "\"$NUCLI_ARREL/.venv/bin/python\" scripts/smoke.py", "fora_sandbox": true},
+    "visual":     {"manual": "Revisió visual al mòbil a 360, 390 i 430 px (refresc dur)"},
+    "migracions": {"manual": "Migració provada en transacció desfeta (begin; … rollback;); l'aplica l'usuari abans del merge"}
+  },
+  "regles": [
+    {"patrons": ["*.md", "docs/**"],          "checks": []},
+    {"patrons": ["*.py"],                     "checks": ["lint", "test"]},
+    {"patrons": ["web/**"],                   "checks": ["lint", "smoke", "visual"]},
+    {"patrons": ["supabase/migrations/**"],   "checks": ["test", "migracions"]}
+  ],
+  "per_defecte": ["lint", "test"],
+  "commits": {"tipus": ["feat","fix","docs","style","refactor","perf","test","build","ci","chore","revert","wip"]},
+  "agent": {
+    "torns": 60, "pressupost_usd": 7,
+    "prohibides": ["Bash(bash scripts/deploy.sh)", "Bash(supabase:*)", "Bash(bash scripts/llanca-sync.sh)", "mcp__supabase__*"]
+  }
+}
