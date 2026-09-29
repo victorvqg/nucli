@@ -404,7 +404,7 @@ def test_init_afegeix_gitignore_i_ask(fes_repo):
     arrel = fes_repo(config=CONFIG, fitxers={".gitignore": "node_modules/", ".claude/settings.json": SETTINGS_MARCADOR})
     r = nucli("init", cwd=arrel)
     assert r.returncode == 0, r.stderr
-    assert (arrel / ".gitignore").read_text() == "node_modules/\n# nucli\n.nucli/\n"
+    assert (arrel / ".gitignore").read_text() == "node_modules/\n# nucli\n.nucli/\n.claude/worktrees/\n"
     assert "Bash(nucli finish:*)" in json.loads((arrel / ".claude/settings.json").read_text())["permissions"]["ask"]
     r = nucli("init", cwd=arrel)
     assert "Res a fer" in r.stdout

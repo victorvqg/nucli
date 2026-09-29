@@ -33,6 +33,7 @@ class Context:
         self.dry_run = dry_run
         self.accions = []
         self.cfg = None
+        self.analisi = None
 
     def afegeix(self, *args, **kw) -> Accio:
         a = Accio(*args, **kw)
@@ -173,7 +174,7 @@ def pas_instruccions(ctx: Context) -> None:
 
 # ---------- pas 5: el que s'afegeix sense tocar res més ----------
 
-ENTRADES_GITIGNORE = [".nucli/"]
+ENTRADES_GITIGNORE = [".nucli/", ".claude/worktrees/"]
 REGLA_FINISH = "Bash(nucli finish:*)"
 SETTINGS = ".claude/settings.json"
 
@@ -210,7 +211,58 @@ def pas_ask_finish(ctx: Context) -> None:
                     extra=diff(text or "", nou, SETTINGS, SETTINGS))
 
 
-PASSOS = [pas_gitignore, pas_ask_finish]
+COMENTARI_WORKTREEINCLUDE = ("# nucli: aquí només hi va l'entorn de desenvolupament (.env.dev). "
+                             "MAI l'.env de producció.\n")
+
+
+def pas_worktreeinclude(ctx: Context) -> None:
+    """Els fitxers ignorats que Claude Code copia a cada worktree nou. Si ja existeix, no el toca."""
+    cami = ctx.arrel / ".worktreeinclude"
+    if cami.exists():
+        ctx.afegeix("ja hi és", ".worktreeinclude", "no el toco")
+        return
+    text = COMENTARI_WORKTREEINCLUDE
+    detall = "només el comentari (no hi ha .env.dev)"
+    if (ctx.arrel / ".env.dev").is_file():
+        text += ".env.dev\n"
+        detall = ".env.dev"
+    ctx.afegeix("crea", ".worktreeinclude", detall, fes=escriu_fitxer(cami, text))
+
+
+def pas_permisos_worktrees(ctx: Context) -> None:
+    """§7.1: proposa (mai aplica) les regles que falten perquè els worktrees quedin tan protegits com el checkout."""
+    base = ctx.cfg["branca_base"]
+    ref = f"origin/{base}" if ctx.repo.git_ok("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{base}") else base
+    an = permisos.analitza(ctx.arrel, ref)
+    ctx.analisi = an
+    for a in an.avisos:
+        ctx.afegeix("avís", "permisos", a)
+    if not an.propostes:
+        ctx.afegeix("ja hi és", "permisos dels worktrees", "cap regla ancorada al checkout principal sense cobrir")
+        return
+    text = permisos.text_proposta(an, ctx.arrel)
+    dest = ctx.arrel / ".nucli" / DIR_PROPOSTA / "permisos.md"
+    rel = dest.relative_to(ctx.arrel).as_posix()
+    extra = "\n".join(permisos.resum_linies(an))
+    if dest.is_file() and dest.read_text(encoding="utf-8") == text:
+        ctx.afegeix("ja hi és", rel, f"{len(an.pendents())} regla(es) de permisos pendents", extra=extra)
+    else:
+        ctx.afegeix("proposa", rel, f"{len(an.pendents())} regla(es) de permisos per als worktrees, sense aplicar-les",
+                    fes=_escriu_proposta(ctx.arrel, "permisos.md", text), extra=extra)
+
+
+PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_permisos_worktrees]
+
+
+def avis_worktrees(an) -> str:
+    return (
+        f"⚠ WORKTREES NO PROTEGITS en aquest repo: {len(an.pendents())} regla(es) de permisos pendents "
+        "(.nucli/proposta/permisos.md).\n"
+        f"  Mentre no siguin al .claude/settings.json de {an.ref_base} (o al .claude/settings.local.json del checkout "
+        "principal, o al teu ~/.claude/settings.json):\n"
+        "  - no facis servir claude --worktree ni subagents amb «isolation: worktree» en aquest repo;\n"
+        "  - nucli agent es nega a arrencar."
+    )
 
 
 def imprimeix(ctx: Context) -> None:
@@ -236,6 +288,9 @@ def imprimeix(ctx: Context) -> None:
         print(f"Avisos: {len(avisos)}. Llegeix-los a dalt.")
     if canvis and not ctx.dry_run:
         print("No he fet cap commit: revisa-ho i fes-lo tu.")
+    if ctx.analisi is not None and ctx.analisi.pendents():
+        print()
+        print(avis_worktrees(ctx.analisi))
 
 
 def ordre(args) -> int:

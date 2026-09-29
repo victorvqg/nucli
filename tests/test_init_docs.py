@@ -58,11 +58,12 @@ def test_com_el_marcador_no_toca_res_i_crea_nomes_estat_i_trampes(com_el_marcado
         assert despres[cami] == contingut, f"{cami} ha canviat"
     nous = sorted(set(despres) - set(abans))
     assert nous == [".claude/settings.json", ".gitignore", ".nucli/.gitignore", ".nucli/proposta/AGENTS.md",
-                    ".nucli/proposta/CLAUDE.md", "docs/ESTAT.md", "docs/TRAMPES.md", "nucli.json"]
+                    ".nucli/proposta/CLAUDE.md", ".worktreeinclude", "docs/ESTAT.md", "docs/TRAMPES.md", "nucli.json"]
     assert "Lliçons apreses" in (arrel / "docs/TRAMPES.md").read_text()
     assert "3. Estat actual i pla de treball" in (arrel / "docs/ESTAT.md").read_text()
     assert git(arrel, "status", "--porcelain", "--untracked-files=all").splitlines() == [
-        "?? .claude/settings.json", "?? .gitignore", "?? docs/ESTAT.md", "?? docs/TRAMPES.md", "?? nucli.json"]
+        "?? .claude/settings.json", "?? .gitignore", "?? .worktreeinclude", "?? docs/ESTAT.md", "?? docs/TRAMPES.md",
+        "?? nucli.json"]
 
     cfg = json.loads((arrel / "nucli.json").read_text())
     assert cfg["docs"]["arquitectura"] == "INFORME_TECNIC.md"

@@ -88,10 +88,10 @@ def fes_repo(tmp_path):
     """Crea un repo amb un commit inicial a main, pujat a un remot bare «origin»."""
 
     def _fes(nom="repo", config=CONFIG_MINIMA, fitxers=None):
-        remot = tmp_path / f"{nom}-origin.git"
+        remot = tmp_path / f"{nom.replace('/', '_')}-origin.git"
         sh("git", "init", "-q", "--bare", "-b", "main", str(remot), cwd=tmp_path)
         arrel = tmp_path / nom
-        arrel.mkdir()
+        arrel.mkdir(parents=True)
         git(arrel, "init", "-q", "-b", "main")
         escriu(arrel, "README.md", "# prova\n")
         for cami, text in (fitxers or {}).items():
