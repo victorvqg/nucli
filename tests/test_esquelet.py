@@ -26,7 +26,7 @@ def test_el_llancador_resol_l_enllac(tmp_path):
     enllac.parent.mkdir()
     enllac.symlink_to(BIN)
     r = nucli("--version", cwd=tmp_path)
-    assert r.returncode == 0 and r.stdout.startswith("nucli ")
+    assert r.returncode == 0 and r.stdout.strip() == "nucli 0.1.1"
 
 
 @pytest.mark.parametrize("args", [["ship", "plan"], ["finish"], ["port"], ["agent", "x1"], ["neteja"]])

@@ -1,9 +1,12 @@
-"""`nucli finish`: l'executa sempre una persona, fora del sandbox (al terminal o amb `!`).
+"""`nucli finish`: l'executa sempre una persona, al terminal (fora del sandbox).
 
-1. Git i rebut: comprovacions sobre el segell, HEAD i l'arbre.
-2. Checks manuals, confirmats un per un en un terminal.
-3. Torna a executar contra HEAD tots els checks automàtics requerits. Si algun falla, no puja res.
-4. Push de la branca i PR (o comentari al PR obert). Mai merge.
+1. Git i rebut: comprovacions sobre el segell, HEAD i l'arbre. No executa res de la branca.
+2. Checks manuals, confirmats un per un.
+3. Ensenya el `git diff --stat` contra la base, marca amb ⚠ els fitxers de la branca que formen part dels checks i
+   demana confirmació explícita [s/N], amb el no per defecte. Amb un no, no fa res.
+4. Executa contra HEAD tots els checks automàtics requerits, també els `fora_sandbox` pendents, i segella.
+   Si algun falla, no puja res.
+5. Push de la branca i PR (o comentari al PR obert). Mai merge.
 """
 from __future__ import annotations
 
@@ -14,8 +17,8 @@ import sys
 
 from . import VERSIO
 from .comu import Plega, Repo, troba_repo
-from .ship import (arbre_head, ara, calcula_pla, canvis_pendents, desa_rebut, executa_check, llegeix_rebut,
-                   problemes_checks, sha_rebut, text_manual)
+from .ship import (arbre_head, ara, calcula_pla, canvis_pendents, desa_rebut, estat_del_rebut, executa_check,
+                   fitxers_del_diff, fitxers_dels_checks, llegeix_rebut, segella, sha_rebut, text_manual)
 
 
 def comprova_git_i_rebut(repo: Repo, cfg: dict, branca: str):
@@ -40,44 +43,68 @@ def comprova_git_i_rebut(repo: Repo, cfg: dict, branca: str):
     commits = repo.git("log", "--reverse", "--format=%s", f"{pla.merge_base}..HEAD").splitlines()
     if not commits:
         raise Plega(f"la branca no té cap commit respecte de {pla.ref_base}: no hi ha res a pujar")
-    problemes = problemes_checks(rebut, pla.automatics(cfg), arbre_head(repo))
+    problemes, fora = estat_del_rebut(cfg, pla, rebut, arbre_head(repo))
     if problemes:
         raise Plega("el rebut no cobreix els checks requerits (recalculats ara):\n  " + "\n  ".join(problemes))
-    return rebut, pla, head, commits[0]
+    return rebut, pla, head, commits[0], fora
 
 
-def confirma_manuals(cfg: dict, manuals: list, registre: dict, repo: Repo, rebut: dict) -> None:
+def pregunta(text: str) -> bool:
+    try:
+        resposta = input(text).strip().lower()
+    except EOFError:
+        resposta = ""
+    return resposta in ("s", "si", "sí")
+
+
+def confirma_manuals(cfg: dict, manuals: list, registre: dict) -> None:
     if not manuals:
         return
     if not sys.stdin.isatty():
         raise Plega(f"hi ha checks manuals ({', '.join(manuals)}) i no hi ha terminal: "
-                    "llança «nucli finish» en un terminal perquè una persona els confirmi")
+                    "llança «nucli finish» en un terminal perquè una persona els confirmi. No he executat res")
     print("Checks manuals (els confirmes tu, un per un):")
     for m in manuals:
-        try:
-            resposta = input(f"  {m}: {text_manual(cfg, m)}. Confirmes? [s/N] ").strip().lower()
-        except EOFError:
-            resposta = ""
-        ok = resposta in ("s", "si", "sí")
+        ok = pregunta(f"  {m}: {text_manual(cfg, m)}. Confirmes? [s/N] ")
         registre["confirmacions"].append({"check": m, "resposta": "sí" if ok else "no", "hora": ara()})
         if not ok:
-            registre["resultat"] = f"aturat: {m} no confirmat"
-            desa_rebut(repo, rebut)
-            raise Plega(f"{m} no confirmat: no pujo res")
+            raise Plega(f"{m} no confirmat: no he executat res ni pujat res")
 
 
-def torna_a_passar_checks(repo: Repo, cfg: dict, automatics: list, head: str, registre: dict, rebut: dict) -> None:
-    if not automatics:
-        return
+def ensenya_diff(repo: Repo, cfg: dict, pla, automatics: list) -> dict:
+    """El `git diff --stat` contra la base i, amb ⚠, els fitxers de la branca que executaran els checks."""
+    print(f"Canvis de la branca respecte de {pla.ref_base} (merge-base {pla.merge_base[:8]}):")
+    stat = repo.git("diff", "--stat=160", pla.merge_base, "HEAD")
+    print("\n".join(f"  {l}" for l in stat.splitlines()) or "  (cap)")
+    camins = [c for _, c in fitxers_del_diff(repo, pla.merge_base)]
+    marcats = fitxers_dels_checks(repo, cfg, automatics, camins)
+    if marcats:
+        print("Fitxers de la branca que formen part dels checks (s'executaran fora del sandbox; revisa'ls):")
+        for cami, motiu in marcats.items():
+            print(f"  ⚠ {cami} · {motiu}")
+    return marcats
+
+
+def confirma_execucio(automatics: list, fora: dict) -> None:
+    if not sys.stdin.isatty():
+        raise Plega("cal un terminal per confirmar l'execució fora del sandbox: no he executat res ni pujat res")
+    detall = ", ".join(f"{c} (encara no s'ha executat)" if c in fora else c for c in automatics)
+    if not pregunta(f"Executo fora del sandbox, amb el codi d'aquesta branca: {detall}. Has llegit el diff? [s/N] "):
+        raise Plega("no confirmat: no he executat res ni pujat res")
+
+
+def executa_i_segella(repo: Repo, cfg: dict, pla, automatics: list, head: str, registre: dict, rebut: dict) -> None:
+    """Executa contra HEAD cada check automàtic requerit i segella. Al primer error, desa el rebut sense segell i plega."""
     arbre = arbre_head(repo)
-    print(f"Torno a executar contra HEAD {head[:8]}: {', '.join(automatics)}. "
-          "Corren fora del sandbox i executen codi d'aquesta branca.")
+    rebut["finish"] = registre  # fora del sha256: el segell cobreix les execucions; això són les teves respostes
     for c in automatics:
         e = executa_check(repo, cfg, c, via="finish")
-        registre["execucions"].append(e)
+        rebut["execucions"].append(e)
+        rebut["segell"] = None
+        registre["execucions"].append({k: e[k] for k in ("check", "codi", "durada_s", "hora")})
         motiu = None
         if e["codi"] != 0:
-            motiu = f"{c} falla a la re-execució contra HEAD (codi {e['codi']})"
+            motiu = f"{c} falla a l'execució contra HEAD (codi {e['codi']})"
         elif repo.git("rev-parse", "HEAD") != head:
             motiu = f"HEAD ha canviat mentre s'executava {c}"
         elif canvis_pendents(repo) or e.get("arbre_despres") or e["arbre"] != arbre:
@@ -86,10 +113,12 @@ def torna_a_passar_checks(repo: Repo, cfg: dict, automatics: list, head: str, re
             registre["resultat"] = f"aturat: {motiu}"
             desa_rebut(repo, rebut)
             raise Plega(f"{motiu}: no pujo res")
+    segell = segella(repo, cfg, pla, rebut)
+    print(f"Segellat · HEAD {segell['head'][:8]} · en verd contra HEAD: {', '.join(automatics)}")
 
 
 def resum(cfg: dict, head: str, registre: dict) -> str:
-    linies = ["## Rebut del nucli", "", f"Checks re-executats per `nucli finish` contra HEAD `{head[:12]}`:", ""]
+    linies = ["## Rebut del nucli", "", f"Checks executats per `nucli finish` contra HEAD `{head[:12]}`:", ""]
     if registre["execucions"]:
         linies += ["| check | codi | durada | hora |", "|---|---|---|---|"]
         linies += [f"| {e['check']} | {e['codi']} | {e['durada_s']} s | {e['hora']} |" for e in registre["execucions"]]
@@ -109,7 +138,7 @@ def gh(*args: str, entrada: str = None) -> subprocess.CompletedProcess:
 def puja(repo: Repo, cfg: dict, branca: str, titol: str, cos: str) -> str:
     r = subprocess.run(["git", "push", "-u", "origin", branca], cwd=str(repo.worktree))
     if r.returncode != 0:
-        raise Plega("el push ha fallat (si l'has llançat des del Bash de Claude, és el sandbox: fes-ho amb «!» o al terminal)")
+        raise Plega("el push ha fallat (si l'has llançat des del Bash de Claude, és el sandbox: fes-ho al terminal)")
     r = gh("pr", "list", "--head", branca, "--state", "open", "--json", "number,url")
     oberts = json.loads(r.stdout or "[]") if r.returncode == 0 else []
     if oberts:
@@ -128,14 +157,20 @@ def ordre(args) -> int:
     repo = troba_repo()
     cfg = repo.config()
     branca = repo.branca()
-    rebut, pla, head, titol = comprova_git_i_rebut(repo, cfg, branca)
+    rebut, pla, head, titol, fora = comprova_git_i_rebut(repo, cfg, branca)
     if shutil.which("gh") is None:
         raise Plega("no trobo «gh» al PATH: el necessito per obrir el PR, i no pujo res sense poder-lo obrir")
+    automatics = pla.automatics(cfg)
     registre = {"hora": ara(), "head": head, "confirmacions": [], "execucions": [], "resultat": "en curs"}
-    rebut["finish"] = registre  # fora del sha256: el segell cobreix el que va fer l'agent, això és el que fas tu
     print(f"nucli finish · branca {branca} · HEAD {head[:8]} · requerits: {', '.join(pla.requerits) or 'cap'}")
-    confirma_manuals(cfg, pla.manuals(cfg), registre, repo, rebut)
-    torna_a_passar_checks(repo, cfg, pla.automatics(cfg), head, registre, rebut)
+    confirma_manuals(cfg, pla.manuals(cfg), registre)
+    ensenya_diff(repo, cfg, pla, automatics)
+    if automatics:
+        confirma_execucio(automatics, fora)
+        executa_i_segella(repo, cfg, pla, automatics, head, registre, rebut)
+    else:
+        print("Cap check automàtic requerit: no executo res de la branca.")
+        rebut["finish"] = registre
     missatge = puja(repo, cfg, branca, titol, resum(cfg, head, registre))
     registre["resultat"] = "pujat"
     desa_rebut(repo, rebut)

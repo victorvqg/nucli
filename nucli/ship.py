@@ -9,6 +9,7 @@ import datetime
 import hashlib
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -208,6 +209,108 @@ def problemes_checks(rebut: dict, automatics: list, arbre: str) -> list:
     return out
 
 
+def dins_i_fora(cfg: dict, automatics: list) -> tuple:
+    """Els checks automàtics que corren dins del sandbox, i els `fora_sandbox`."""
+    fora = [c for c in automatics if cfg["checks"][c].get("fora_sandbox")]
+    return [c for c in automatics if c not in fora], fora
+
+
+def estat_del_rebut(cfg: dict, pla: "Pla", rebut: dict, arbre: str) -> tuple:
+    """(problemes, pendents): el que impedeix segellar i els `fora_sandbox` que encara no valen sobre HEAD.
+
+    Els `fora_sandbox` no els pot passar cap agent: queden pendents al segell i els executa `nucli finish`,
+    després que una persona hagi llegit el diff. `pendents` és {check: motiu}.
+    """
+    dins, fora = dins_i_fora(cfg, pla.automatics(cfg))
+    pendents = {}
+    for c in fora:
+        motiu = problemes_checks(rebut, [c], arbre)
+        if motiu:
+            pendents[c] = motiu[0]
+    return problemes_checks(rebut, dins, arbre), pendents
+
+
+MISSATGE_FORA = "No els executa cap agent: s'executaran a «nucli finish», després que llegeixis el diff."
+
+
+def segella(repo: Repo, cfg: dict, pla: "Pla", rebut: dict) -> dict:
+    """Segella el rebut si l'arbre és net i els checks de dins del sandbox són en verd sobre HEAD.
+
+    Els `fora_sandbox` que falten queden a `fora_sandbox_pendents`. Plega si no pot segellar.
+    """
+    pendents = canvis_pendents(repo)
+    if pendents:
+        raise Plega("l'arbre de treball no és net: fes commit (o descarta) abans de segellar:\n  " + "\n  ".join(pendents[:20]))
+    arbre = arbre_head(repo)
+    problemes, fora = estat_del_rebut(cfg, pla, rebut, arbre)
+    if problemes:
+        raise Plega("no segello:\n  " + "\n  ".join(problemes))
+    segell = {
+        "head": repo.git("rev-parse", "HEAD"), "arbre": arbre, "hora": ara(), "requerits": pla.requerits,
+        "manuals_pendents": pla.manuals(cfg), "fora_sandbox_pendents": list(fora), "nucli": VERSIO,
+    }
+    rebut["segell"] = segell
+    segell["sha256"] = sha_rebut(rebut)
+    desa_rebut(repo, rebut)
+    return segell
+
+
+# ---------- fitxers de la branca que formen part dels checks ----------
+
+PATRONS_TEST = ["test_*.py", "*_test.py", "conftest.py", "*_test.go", "*.test.js", "*.test.ts", "*.spec.js",
+                "*.spec.ts", "tests/", "test/", "__tests__/"]
+SEPARADORS = {"&&", "||", ";", "|", "&", "(", ")"}
+
+
+def referencies(ordre_shell: str, arrel: Path) -> list:
+    """Fitxers i carpetes del repo que fa servir una ordre de check: [(camí relatiu, és carpeta)].
+
+    Segueix els `cd` («cd scraper && … -s tests» → scraper/tests). No mira dins dels scripts.
+    """
+    try:
+        lex = shlex.shlex(ordre_shell, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        tokens = list(lex)
+    except ValueError:
+        tokens = ordre_shell.split()
+    base, out, i = "", [], 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t == "cd" and i + 1 < len(tokens):
+            base = os.path.normpath(os.path.join(base, tokens[i + 1]))
+            i += 2
+            continue
+        i += 1
+        if not t or t in SEPARADORS or t.startswith(("-", "$", "/", "~")) or "=" in t:
+            continue
+        rel = os.path.normpath(os.path.join(base, t))
+        if rel == "." or rel.startswith(".."):
+            continue
+        cami = arrel / rel
+        if cami.exists():
+            out.append((Path(rel).as_posix(), cami.is_dir()))
+    return out
+
+
+def fitxers_dels_checks(repo: Repo, cfg: dict, automatics: list, camins: list) -> dict:
+    """{camí: motiu} dels fitxers del diff que executaran els checks: els scripts que criden, el que hi ha a les
+    carpetes que fan servir i els tests."""
+    refs = [(rel, es_dir, c) for c in automatics for rel, es_dir in referencies(cfg["checks"][c]["ordre"], repo.worktree)]
+    marcats = {}
+    for cami in camins:
+        motius = []
+        for rel, es_dir, c in refs:
+            if cami == rel:
+                motius.append(f"l'executa el check {c}")
+            elif es_dir and cami.startswith(rel + "/"):
+                motius.append(f"és a {rel}/, que fa servir el check {c}")
+        if algun(PATRONS_TEST, cami):
+            motius.append("test")
+        if motius:
+            marcats[cami] = "; ".join(dict.fromkeys(motius))
+    return marcats
+
+
 # ---------- execució d'un check ----------
 
 def entorn_nucli(repo: Repo, check: str) -> dict:
@@ -281,7 +384,7 @@ def ordre_plan(repo: Repo) -> int:
     for c in pla.requerits:
         if c in pla.automatics(cfg):
             ch = cfg["checks"][c]
-            fora = "  (fora del sandbox: el passa nucli agent o tu amb !)" if ch.get("fora_sandbox") else ""
+            fora = "  (fora del sandbox: no l'executa cap agent, el passa nucli finish)" if ch.get("fora_sandbox") else ""
             print(f"  {c:<15} automàtic  {ch['ordre']}{fora}")
         else:
             print(f"  {c:<15} manual     {text_manual(cfg, c)} (es confirma a nucli finish)")
@@ -308,22 +411,11 @@ def ordre_seal(repo: Repo) -> int:
     cfg = repo.config()
     branca = branca_amb_rebut(repo)
     pla = calcula_pla(repo)
-    pendents = canvis_pendents(repo)
-    if pendents:
-        raise Plega("l'arbre de treball no és net: fes commit (o descarta) abans de segellar:\n  " + "\n  ".join(pendents[:20]))
     rebut = llegeix_rebut(repo, branca)
-    arbre = arbre_head(repo)
-    problemes = problemes_checks(rebut, pla.automatics(cfg), arbre)
-    if problemes:
-        raise Plega("no segello:\n  " + "\n  ".join(problemes))
-    segell = {
-        "head": repo.git("rev-parse", "HEAD"), "arbre": arbre, "hora": ara(), "requerits": pla.requerits,
-        "manuals_pendents": pla.manuals(cfg), "nucli": VERSIO,
-    }
-    rebut["segell"] = segell
-    segell["sha256"] = sha_rebut(rebut)
-    desa_rebut(repo, rebut)
+    segell = segella(repo, cfg, pla, rebut)
     print(f"nucli ship seal · segellat · HEAD {segell['head'][:8]} · requerits: {', '.join(pla.requerits) or 'cap'}")
+    if segell["fora_sandbox_pendents"]:
+        print(f"Fora del sandbox, pendents: {', '.join(segell['fora_sandbox_pendents'])}. {MISSATGE_FORA}")
     if segell["manuals_pendents"]:
         print(f"Manuals pendents (els confirma una persona a nucli finish): {', '.join(segell['manuals_pendents'])}")
     return 0

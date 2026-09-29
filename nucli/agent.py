@@ -1,8 +1,9 @@
 """`nucli agent <id>`: la versió general de scripts/agent.sh. Un agent headless en un worktree nou, sense push.
 
 Es nega a arrencar mentre hi hagi permisos pendents per als worktrees (§7.1). En acabar desbloqueja el
-worktree, passa els checks `fora_sandbox` que toquin i intenta segellar. L'última línia diu sempre com
-revisar-ho i llançar `nucli finish`.
+worktree i intenta segellar amb el que ha passat l'agent. No executa mai cap check ni cap codi de la branca
+fora del sandbox (v0.1.1): els `fora_sandbox` queden pendents per a `nucli finish`, que els executa després que
+una persona hagi llegit el diff. L'última línia diu sempre com revisar-ho i llançar `nucli finish`.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 from . import permisos
 from .comu import Plega, Repo, prepara_dir_nucli, troba_repo
-from .ship import calcula_pla, desa_rebut, executa_check, llegeix_rebut, ordre_seal
+from .ship import MISSATGE_FORA, arbre_head, branca_amb_rebut, calcula_pla, estat_del_rebut, llegeix_rebut, segella
 
 ID_VALID = re.compile(r"^[a-z0-9-]+$")
 
@@ -100,7 +101,7 @@ Cicle (obligatori):
 1. Llegeix CLAUDE.md o AGENTS.md i els docs del nucli{': ' + llista if llista else ''}.
 2. Si el canvi toca més d'un mòdul, escriu el pla a `.nucli/pla-{id_}.md` abans de tocar codi.
 3. Fes el canvi mínim. Commits Conventional Commits {idioma}, amb l'id al final: `tipus(àmbit): què ({id_})`. Tipus vàlids: {', '.join(cfg['commits']['tipus'])}. `git add` dels fitxers concrets, no `-A`.
-4. Porta: `nucli ship plan` → `nucli ship run <check>` per a cada check automàtic que demani, excepte els marcats «fora del sandbox» (els passa nucli agent quan acabis) → `nucli ship seal`. Si un check falla, arregla el codi i torna'l a executar. No editis mai `.nucli/rebuts/`.
+4. Porta: `nucli ship plan` → `nucli ship run <check>` per a cada check automàtic que demani, excepte els marcats «fora del sandbox»: no els executis, els passa `nucli finish` quan una persona ha llegit el diff → `nucli ship seal` (els deixa pendents). Si un check falla, arregla el codi i torna'l a executar. No editis mai `.nucli/rebuts/`.
 5. Si no pots acabar, escriu per què t'atures a `.nucli/atura-{id_}.md` i no facis commit de feina a mitges.
 
 Mai: push, merge, deploy, canviar de branca, instal·lar res ni executar `nucli finish` (el llança una persona). No toquis `nucli.json`, `.claude/`, `.mcp.json` ni cap secret.
@@ -183,20 +184,24 @@ def ordre(args) -> int:
 
 
 def despres(repo_wt: Repo, cfg: dict) -> bool:
-    """Passa els checks fora_sandbox requerits, torna a intentar segellar i ensenya l'estat del rebut."""
+    """Intenta segellar amb el que ha passat l'agent i diu quins `fora_sandbox` queden pendents.
+
+    Només llegeix git i el rebut: no executa cap check ni cap codi de la branca.
+    """
     try:
         pla = calcula_pla(repo_wt)
-        branca = repo_wt.branca()
-        fora = [c for c in pla.automatics(cfg) if cfg["checks"][c].get("fora_sandbox")]
-        if fora:
-            print(f"Checks fora del sandbox: {', '.join(fora)}")
-            rebut = llegeix_rebut(repo_wt, branca)
-            for c in fora:
-                rebut["execucions"].append(executa_check(repo_wt, cfg, c, via="agent"))
-                rebut["segell"] = None
-            desa_rebut(repo_wt, rebut)
-        ordre_seal(repo_wt)
-        return True
+        rebut = llegeix_rebut(repo_wt, branca_amb_rebut(repo_wt))
+        _, fora = estat_del_rebut(cfg, pla, rebut, arbre_head(repo_wt))
     except Plega as e:
         print(f"rebut sense segell: {e}")
         return False
+    segellat = False
+    try:
+        segell = segella(repo_wt, cfg, pla, rebut)
+        print(f"rebut segellat · HEAD {segell['head'][:8]} · requerits: {', '.join(pla.requerits) or 'cap'}")
+        segellat = True
+    except Plega as e:
+        print(f"rebut sense segell: {e}")
+    if fora:
+        print(f"Checks fora del sandbox pendents: {', '.join(fora)}. {MISSATGE_FORA}")
+    return segellat

@@ -64,9 +64,10 @@ def nucli(*args, cwd, entrada=None, env_extra=None, python=None):
     env = dict(os.environ)
     if env_extra:
         env.update(env_extra)
+    # sense entrada, stdin és /dev/null: una prova no ha d'heretar mai el terminal de qui llança pytest
     return subprocess.run(
-        [python or sys.executable, str(BIN), *args],
-        cwd=str(cwd), capture_output=True, text=True, input=entrada, env=env,
+        [python or sys.executable, str(BIN), *args], cwd=str(cwd), capture_output=True, text=True, env=env,
+        **({"input": entrada} if entrada is not None else {"stdin": subprocess.DEVNULL}),
     )
 
 

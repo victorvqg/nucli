@@ -1,12 +1,17 @@
 # NUCLI.md — especificació i pla de la v0.1
 
-Última revisió: 2026-09-29 · Estat: **aprovat amb canvis (n478)**. La v0.1 es construeix per fases (§8), amb un commit per fase.
+Última revisió: 2026-09-29 · Versió: **0.1.1** · Estat: **aprovat amb canvis (n478)**, i correcció de seguretat de la v0.1.1 (n505). La v0.1 es construeix per fases (§8), amb un commit per fase.
 
 Canvis de la n478 respecte de l'esborrany:
 1. El forat dels worktrees afecta **qualsevol** worktree, també un `claude --worktree` interactiu. `nucli init` detecta les regles ancorades al checkout principal i proposa (sense aplicar-les) les versions que cobreixen `.claude/worktrees/**`, i que l'`allow` dels scripts relatius només valgui al checkout principal. Mentre no hi siguin, `init` ho avisa i `nucli agent` no arrenca (§5.1, §5.4, §7.1).
 2. `nucli finish` torna a executar els checks automàtics requerits contra HEAD abans de pujar. Si algun falla, no puja res (§5.2).
 3. Preguntes: P1 = A (bloc «Nucli» curt), P3 = sí, P6 = sí, la resta segons la recomanació (§9).
 4. Es mantenen: regles i ordres llegides del `nucli.json` del checkout principal, check vàlid només sobre l'arbre exacte de HEAD i `nucli finish` executat sempre per tu.
+
+Canvis de la v0.1.1 (n505), correcció de seguretat abans de les proves reals: res del codi d'una branca no s'executa fora del sandbox sense que una persona n'hagi llegit el diff.
+1. `nucli agent` ja no executa, quan l'agent acaba, cap check `fora_sandbox` ni res de la branca. Els deixa pendents al segell i acaba dient quins són i que s'executaran a `nucli finish` (§5.4).
+2. `ship seal` segella amb els `fora_sandbox` pendents (`fora_sandbox_pendents`); els de dins del sandbox han de ser en verd sobre HEAD, com abans (§5.2).
+3. `nucli finish`, abans d'executar res fora del sandbox, ensenya el `git diff --stat` contra la base, marca amb ⚠ els fitxers de la branca que formen part dels checks i demana confirmació explícita `[s/N]`, amb el no per defecte. Amb un sí, executa tots els checks automàtics (també els pendents) i segella; amb un no, no fa res (§5.2).
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
@@ -136,7 +141,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 **Camps del fitxer:**
 - **`docs`**: cada rol apunta a un fitxer o a `fitxer#Secció`, que vol dir «escriu dins d'aquesta secció H2».
 - **`checks`**: n'hi ha de dos tipus. **Automàtics** (`ordre`, una línia de shell) i **manuals** (`manual`, el text que es mostra quan s'han de confirmar).
-- **`fora_sandbox`**: marca els checks que no poden córrer dins del sandbox. `smoke.py` n'és un, perquè Chromium no hi arrenca (mp44). Els passa `nucli agent` en acabar, o tu amb `!`.
+- **`fora_sandbox`**: marca els checks que no poden córrer dins del sandbox. `smoke.py` n'és un, perquè Chromium no hi arrenca (mp44). No els executa cap agent ni `nucli agent`: queden pendents al segell i els executa `nucli finish`, després que hagis llegit el diff i ho hagis confirmat (v0.1.1).
 - **`regles`**: els patrons segueixen la sintaxi `.gitignore`. Sense `/`, coincideixen amb el nom del fitxer a qualsevol nivell; amb `/`, des de l'arrel; `**` vol dir qualsevol nombre de carpetes.
   - Si un fitxer coincideix amb diverses regles, es fa la unió dels seus checks.
   - Si un fitxer **no coincideix amb cap**, s'aplica `per_defecte`. Així un fitxer que no s'ha previst no es queda mai sense checks.
@@ -191,35 +196,42 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 **`nucli ship seal`**
 - Torna a calcular els checks requerits a partir del diff, sense fiar-se del rebut, i segella només si:
   - l'arbre de treball és net;
-  - l'última execució de cada check automàtic requerit té codi 0;
+  - l'última execució de cada check automàtic requerit **de dins del sandbox** té codi 0;
   - aquella execució es va fer **sobre l'arbre exacte de HEAD** (`arbre == HEAD^{tree}`).
-- El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents` i un `sha256` del contingut canònic del rebut.
+- Els checks `fora_sandbox` que no s'hagin passat sobre HEAD no impedeixen segellar: queden a `fora_sandbox_pendents` i els executa `nucli finish` (v0.1.1).
+- El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents`, `fora_sandbox_pendents` i un `sha256` del contingut canònic del rebut.
 - Si falla, diu exactament què falta: «test: executat sobre un arbre diferent del de HEAD (has editat després?)».
 
-**`nucli finish`** (l'executes sempre tu, al terminal o amb `! nucli finish`, és a dir, fora del sandbox). Va per passos, i al primer refús s'atura **sense pujar res**, amb el motiu i l'ordre que ho arregla:
-1. **Git i rebut.** Es nega a continuar si:
+**`nucli finish`** (l'executes sempre tu, en un terminal, és a dir, fora del sandbox). Va per passos, i al primer refús s'atura **sense executar ni pujar res**, amb el motiu i l'ordre que ho arregla:
+1. **Git i rebut** (no executa res de la branca). Es nega a continuar si:
    - ets a la branca base;
    - no hi ha rebut, o no està segellat;
    - el `sha256` no quadra (algú ha tocat el rebut);
    - HEAD ≠ `segell.head`, o l'arbre de treball no és net;
-   - algun check requerit, **recalculat ara**, té l'última execució fallida, sobre un arbre que no és el de HEAD, o no n'ha tingut cap.
-2. **Checks manuals.** Si n'hi ha i no hi ha terminal, plega. Si n'hi ha, una persona els confirma un per un (`s/N`); un «no» atura el `finish`. Les respostes queden al rebut.
-3. **Torna a executar contra HEAD tots els checks automàtics requerits**, també els `fora_sandbox`, un darrere l'altre, a l'arrel del worktree i amb l'arbre net. Després de cada check comprova que HEAD no ha canviat i que l'arbre continua net: un check que modifica fitxers és un refús. Cada execució queda al rebut amb `"via": "finish"`. **Si algun falla, no puja res.**
-4. Si tot és correcte:
+   - algun check requerit de dins del sandbox, **recalculat ara**, té l'última execució fallida, sobre un arbre que no és el de HEAD, o no n'ha tingut cap. Els `fora_sandbox` pendents no són un refús: els executa el pas 4.
+2. **Checks manuals.** Si n'hi ha i no hi ha terminal, plega. Si n'hi ha, una persona els confirma un per un (`s/N`); un «no» atura el `finish` sense executar res.
+3. **Abans d'executar res fora del sandbox** (v0.1.1):
+   - ensenya el `git diff --stat` de la branca contra la base (el merge-base amb `origin/<branca_base>`);
+   - marca amb ⚠ els fitxers de la branca que formen part dels checks: els scripts que criden les ordres de `nucli.json` (`bash scripts/check.sh` → `scripts/check.sh`), el que hi ha a les carpetes que fan servir (`cd scraper && … -s tests` → `scraper/tests/`) i els tests (`test_*.py`, `*_test.py`, `conftest.py`, `tests/`…);
+   - demana confirmació explícita: «Executo fora del sandbox, amb el codi d'aquesta branca: lint, test, smoke (encara no s'ha executat). Has llegit el diff? [s/N]». El no és per defecte: amb un no, una resposta buida o sense terminal, **no fa res** (ni executa, ni segella, ni puja, ni toca el rebut).
+
+   Si no hi ha cap check automàtic requerit (una branca només de docs), no s'executa res de la branca i no cal confirmació.
+4. **Executa contra HEAD tots els checks automàtics requerits**, també els `fora_sandbox` pendents, un darrere l'altre, a l'arrel del worktree i amb l'arbre net. Després de cada check comprova que HEAD no ha canviat i que l'arbre continua net: un check que modifica fitxers és un refús. Cada execució queda al rebut amb `"via": "finish"`. **Si algun falla, no puja res** i el rebut queda sense segell. Si tots passen, **segella** (ara sense cap pendent).
+5. Si tot és correcte:
    - `git push -u origin <branca>` (el pre-push del nucli el deixa passar perquè no és `main`);
-   - `gh pr create --base main` amb el títol del primer commit de la branca i el resum a la descripció: la taula check · codi · durada · hora **de les execucions del pas 3**, les confirmacions manuals, HEAD i versió del nucli.
+   - `gh pr create --base main` amb el títol del primer commit de la branca i el resum a la descripció: la taula check · codi · durada · hora **de les execucions del pas 4**, les confirmacions manuals, HEAD i versió del nucli.
 
    Si la branca ja té un PR obert, fa el push i hi afegeix el resum com a comentari. **No fa mai merge.**
 
-Els manuals van abans del pas 3 perquè la persona que confirma que ha revisat la branca ho faci abans que el codi de la branca s'executi fora del sandbox.
+Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè la persona que ha llegit el diff ho confirmi abans que el codi de la branca s'executi fora del sandbox; després `finish` corre sol fins al PR.
 
-**Límit, dit clar**: el pas 3 executa codi de la branca (scripts i tests que l'agent pot haver tocat) fora del sandbox i amb xarxa. És el mateix que avui fa `agent.sh` en acabar, però aquí passa després de la teva revisió. Revisa el diff abans de llançar `nucli finish`.
+**Límit, dit clar**: el pas 4 executa codi de la branca (scripts i tests que l'agent pot haver tocat) fora del sandbox i amb xarxa. Per això només passa després que hagis vist el diff i ho hagis confirmat. Els ⚠ són una ajuda, no una garantia: no miren dins dels scripts, i un test pot importar qualsevol mòdul de la branca. Llegeix el diff sencer (`git diff <base>...HEAD`) si en tens dubtes.
 
 **Proteccions**
 - `.nucli/` va al `.gitignore`.
 - Un hook `PreToolUse` global (matcher `^(Edit|Write|NotebookEdit)$`) nega qualsevol `file_path` dins de `.nucli/rebuts/` d'un repo amb `nucli.json`.
 - `.nucli/` porta el seu propi `.gitignore` (`*`), perquè el rebut no embruti l'arbre d'un worktree la base del qual encara no ignora `.nucli/`.
-- **Límit, dit clar**: una ordre Bash sí que pot escriure el rebut. El rebut és una barana contra errors, no una frontera contra un agent hostil. El que el fa fiable: `finish` ho torna a comprovar tot contra git (HEAD, arbre, regles del checkout principal), el `sha256` detecta retocs a mà, els manuals només es confirmen en un terminal i, sobretot, `finish` torna a executar els checks ell mateix abans de pujar.
+- **Límit, dit clar**: una ordre Bash sí que pot escriure el rebut. El rebut és una barana contra errors, no una frontera contra un agent hostil. El que el fa fiable: `finish` ho torna a comprovar tot contra git (HEAD, arbre, regles del checkout principal), el `sha256` detecta retocs a mà, els manuals i l'execució només es confirmen en un terminal i, sobretot, `finish` torna a executar els checks ell mateix abans de pujar, després que hagis vist el diff.
 
 **Permisos**
 - `nucli init` afegeix `Bash(nucli finish:*)` a `ask`. Ho fa amb una inserció de text mínima a l'array `ask` (conserva el format del fitxer) i després comprova que el JSON resultant sigui l'original més aquesta regla. Si no pot, plega i t'ho diu. No toca cap altra regla.
@@ -256,7 +268,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - llegir `CLAUDE.md`/`AGENTS.md` i els docs de `nucli.json`, i la tasca (`--tasca`, o el bloc `<id>` del fitxer de `tasques`);
    - si toca més d'un mòdul, escriure el pla a `.nucli/pla-<id>.md` abans de tocar codi;
    - implementar el canvi mínim, amb commits Conventional Commits en l'idioma de `nucli.json` i amb `(<id>)`;
-   - `nucli ship plan` → `nucli ship run` de cada check automàtic que no sigui `fora_sandbox` → `nucli ship seal`;
+   - `nucli ship plan` → `nucli ship run` de cada check automàtic que no sigui `fora_sandbox` (aquests no els executa: els passa `nucli finish`) → `nucli ship seal`, que els deixa pendents;
    - si no pot acabar, **escriure per què s'atura** a `.nucli/atura-<id>.md` i no fer commit de feina a mitges.
 3. **Llançament**: `env -u CLAUDECODE claude -p --worktree <id>` amb les opcions d'`agent.sh`:
    - `--permission-mode acceptEdits`, `--strict-mcp-config`, `--max-turns`, `--max-budget-usd`, `--output-format json` i `--no-session-persistence`;
@@ -269,10 +281,10 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
      - totes les regles `allow` de Bash del projecte que apunten al checkout principal: són per a les teves sessions al checkout principal, i l'agent treballa al worktree.
    
    El log va a `.nucli/agent/<id>.json` del checkout principal.
-4. **En acabar**:
+4. **En acabar** (v0.1.1: **no executa cap check ni cap codi de la branca**; només llegeix git i el rebut):
    - `git worktree unlock`;
-   - passa els checks `fora_sandbox` que toquin (el `smoke` del marcador) amb `nucli ship run` dins del worktree, i torna a intentar `ship seal`;
-   - imprimeix un resum: el rebut, el cost, els torns i, si n'hi ha, el motiu d'aturada.
+   - torna a intentar `ship seal` amb el que ha passat l'agent; els `fora_sandbox` (el `smoke` del marcador) queden a `fora_sandbox_pendents`;
+   - imprimeix un resum: el rebut, el cost, els torns, el motiu d'aturada si n'hi ha, i els checks pendents: «Checks fora del sandbox pendents: smoke. No els executa cap agent: s'executaran a «nucli finish», després que llegeixis el diff.».
 5. **Sense push, PR, deploy ni merge**. L'última línia és sempre:
    ```
    revisa-ho i, si et va bé: cd .claude/worktrees/<id> && nucli finish
@@ -379,7 +391,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **Verificat el 29/9/2026** amb `claude -p --worktree` (Haiku) en un repo de prova: amb només `Edit(//<repo>/web/config.js)` a `deny`, Claude va editar `web/config.js` dins del worktree sense cap denegació. Amb la regla que proposa el nucli (`Edit(//<repo>/.claude/worktrees/**/web/config.js)`) pujada a la base, l'Edit va quedar denegat i el fitxer no va canviar. Al clon del marcador, amb les regles reancorades al camí del clon, `nucli init` en treu exactament la proposta de sobre.
    - `bash scripts/deploy.sh` també és a `excludedCommands` amb camí relatiu, però no té `allow`: en un worktree et demanaria permís. `init` ho avisa sense bloquejar.
    - `nucli agent` afegeix a `--disallowedTools` les variants absolutes de les `prohibides` i els `allow` de Bash ancorats al checkout principal (§5.4), perquè l'`allow` absolut nou no obri res a l'agent.
-2. **`nucli finish` des del Bash de Claude al marcador** correria dins del sandbox, sense xarxa, i el push fallaria. Falla tancat, i està bé. Es llança al terminal o amb `! nucli finish`. **No** l'afegeixo a `excludedCommands`: seria afluixar.
+2. **`nucli finish` des del Bash de Claude al marcador** correria dins del sandbox, sense xarxa, i el push fallaria. Falla tancat, i està bé. Es llança al terminal. Amb `!` només arriba al final si no hi ha res a executar ni a confirmar: `finish` demana la confirmació en un terminal i, si no n'hi ha, plega sense executar res (v0.1.1). **No** l'afegeixo a `excludedCommands`: seria afluixar.
 3. **La base del worktree és `origin/main`**: el commit de `nucli init` s'ha de fusionar (PR) abans que `ship` i `agent` funcionin.
 4. **El `.venv` no és al worktree**: les ordres de check hi arriben amb `$NUCLI_ARREL/.venv`.
 5. **`claude -p --worktree` deixa el worktree bloquejat**: el desbloqueja `nucli agent`.

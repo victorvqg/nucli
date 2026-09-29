@@ -214,48 +214,65 @@ def branques_remot(repo):
     return git(repo, "ls-remote", "--heads", "origin")
 
 
+def finish_amb_terminal(wt, respostes: str):
+    """nucli finish amb un terminal de veritat (pty) a stdin i les respostes ja escrites."""
+    mestre, esclau = pty.openpty()
+    os.write(mestre, respostes.encode())
+    try:
+        return subprocess.run([sys.executable, str(BIN), "finish"], cwd=str(wt), stdin=esclau,
+                              capture_output=True, text=True, env=dict(os.environ), timeout=120)
+    finally:
+        os.close(esclau)
+        os.close(mestre)
+
+
 def test_finish_cami_bo(repo, wt, gh_fals):
     fes_feina(wt)
     passa(wt, "lint", "test")
-    r = nucli("finish", cwd=wt)
+    r = finish_amb_terminal(wt, "s\n")
     assert r.returncode == 0, r.stdout + r.stderr
     assert "refs/heads/worktree-feina" in branques_remot(repo)
     log = gh_fals["registre"].read_text()
     assert "pr create --base main --head worktree-feina --title feat(app): canvi" in log
     cos = gh_fals["cos"].read_text()
-    assert "| lint | 0 |" in cos and "| test | 0 |" in cos and "re-executats per `nucli finish`" in cos
-    reg = rebut(wt)["finish"]
-    assert reg["resultat"] == "pujat" and [e["via"] for e in reg["execucions"]] == ["finish", "finish"]
-    assert "Torno a executar contra HEAD" in r.stdout and "No he fet cap merge" in r.stdout
+    assert "| lint | 0 |" in cos and "| test | 0 |" in cos and "executats per `nucli finish`" in cos
+    dades = rebut(wt)
+    assert dades["finish"]["resultat"] == "pujat" and [e["check"] for e in dades["finish"]["execucions"]] == ["lint", "test"]
+    assert [e["via"] for e in dades["execucions"]] == ["ship", "ship", "finish", "finish"]
+    assert dades["segell"]["fora_sandbox_pendents"] == [] and dades["segell"]["sha256"]
+    assert "app.py" in r.stdout and "1 file changed" in r.stdout  # el diff --stat contra la base
+    assert "Executo fora del sandbox, amb el codi d'aquesta branca: lint, test. Has llegit el diff? [s/N]" in r.stdout
+    assert "No he fet cap merge" in r.stdout
 
 
 def test_finish_amb_pr_obert_hi_comenta(repo, wt, gh_fals):
     gh_fals["llista"].write_text('[{"number": 7, "url": "https://github.com/prova/repo/pull/7"}]')
     fes_feina(wt)
     passa(wt, "lint", "test")
-    r = nucli("finish", cwd=wt)
+    r = finish_amb_terminal(wt, "s\n")
     assert r.returncode == 0, r.stderr
     assert "pr comment 7 --body-file -" in gh_fals["registre"].read_text()
     assert "comentari al PR obert" in r.stdout
 
 
-def test_finish_reexecucio_fallida_no_puja_res(repo, wt, gh_fals, entorn):
+def test_finish_execucio_fallida_no_puja_res(repo, wt, gh_fals, entorn):
     """El rebut diu verd, però ara (fora del sandbox, contra HEAD) el test falla: no es puja res."""
     fes_feina(wt)
     passa(wt, "lint", "test")
     (entorn / "falla").write_text("")
-    r = nucli("finish", cwd=wt)
-    assert r.returncode == 1 and "test falla a la re-execució contra HEAD (codi 1): no pujo res" in r.stderr
+    r = finish_amb_terminal(wt, "s\n")
+    assert r.returncode == 1 and "test falla a l'execució contra HEAD (codi 1): no pujo res" in r.stderr
     assert "worktree-feina" not in branques_remot(repo)
     assert not gh_fals["registre"].exists() or "pr create" not in gh_fals["registre"].read_text()
-    assert rebut(wt)["finish"]["resultat"].startswith("aturat: test falla")
+    dades = rebut(wt)
+    assert dades["finish"]["resultat"].startswith("aturat: test falla") and dades["segell"] is None
 
 
 def test_finish_check_que_embruta_l_arbre_no_puja(repo, wt, gh_fals, entorn):
     fes_feina(wt, "gen/x.txt", "g\n")
     passa(wt, "brut")
     (entorn / "embruta").write_text("")
-    r = nucli("finish", cwd=wt)
+    r = finish_amb_terminal(wt, "s\n")
     assert r.returncode == 1 and "brut ha modificat l'arbre de treball: no pujo res" in r.stderr
     assert "worktree-feina" not in branques_remot(repo)
 
@@ -324,20 +341,10 @@ def test_finish_amb_manuals_sense_terminal(repo, wt, gh_fals):
     assert "worktree-feina" not in branques_remot(repo)
 
 
-def finish_amb_terminal(wt, resposta: str):
-    mestre, esclau = pty.openpty()
-    os.write(mestre, resposta.encode())
-    proc = subprocess.run([sys.executable, str(BIN), "finish"], cwd=str(wt), stdin=esclau,
-                          capture_output=True, text=True, env=dict(os.environ))
-    os.close(esclau)
-    os.close(mestre)
-    return proc
-
-
 def test_finish_manuals_confirmats_al_terminal(repo, wt, gh_fals):
     fes_feina(wt, "web/index.html", "<p>2\n")
     passa(wt, "lint")
-    r = finish_amb_terminal(wt, "s\n")
+    r = finish_amb_terminal(wt, "s\ns\n")  # el manual i, després, l'execució
     assert r.returncode == 0, r.stdout + r.stderr
     assert "worktree-feina" in branques_remot(repo)
     assert "- visual: sí" in gh_fals["cos"].read_text()
@@ -347,9 +354,11 @@ def test_finish_manuals_confirmats_al_terminal(repo, wt, gh_fals):
 def test_finish_manual_no_confirmat(repo, wt, gh_fals):
     fes_feina(wt, "web/index.html", "<p>2\n")
     passa(wt, "lint")
+    abans = (wt / ".nucli/rebuts/worktree-feina.json").read_bytes()
     r = finish_amb_terminal(wt, "n\n")
-    assert r.returncode == 1 and "visual no confirmat: no pujo res" in r.stderr
+    assert r.returncode == 1 and "visual no confirmat: no he executat res ni pujat res" in r.stderr
     assert "worktree-feina" not in branques_remot(repo)
+    assert (wt / ".nucli/rebuts/worktree-feina.json").read_bytes() == abans
 
 
 def test_finish_sense_gh_no_puja(repo, wt, monkeypatch):

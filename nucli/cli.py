@@ -60,7 +60,8 @@ def construeix_parser() -> argparse.ArgumentParser:
     r.add_argument("check")
     ss.add_parser("seal", help="segella el rebut si tots els checks requerits són en verd sobre l'arbre de HEAD")
 
-    sub.add_parser("finish", help="(només tu, fora del sandbox) verifica, torna a passar els checks, fa push i obre el PR")
+    sub.add_parser("finish", help="(només tu, al terminal) ensenya el diff, et demana confirmació, passa els checks contra "
+                  "HEAD, segella, fa push i obre el PR")
 
     s = sub.add_parser("port", help="port estable d'aquest worktree (4100–4999)")
     s.add_argument("--comprova", action="store_true", help="avisa si el port està ocupat")

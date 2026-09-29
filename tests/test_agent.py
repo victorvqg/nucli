@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -11,7 +12,7 @@ from test_worktree import PREFIX, aplica, settings_marcador
 from nucli import permisos
 
 CONFIG = json.loads(json.dumps(CONFIG_MINIMA))
-CONFIG["checks"]["smoke"] = {"ordre": "echo smoke-ok", "fora_sandbox": True}
+CONFIG["checks"]["smoke"] = {"ordre": "touch \"$HOME/smoke-executat\" && echo smoke-ok", "fora_sandbox": True}
 CONFIG["regles"][1]["checks"] = ["lint", "test", "smoke"]
 CONFIG["tasques"] = {"fitxer": "TASQUES.md", "prefix": "mt"}
 CONFIG["agent"] = {"torns": 40, "pressupost_usd": 5,
@@ -92,9 +93,14 @@ def test_cami_bo(repo, entorn_agent):
     wt = repo / ".claude/worktrees/mt12"
     assert "locked" not in git(repo, "worktree", "list", "--porcelain").split(str(wt))[1].split("\n\n")[0]
     rebut = json.loads((wt / ".nucli/rebuts/worktree-mt12.json").read_text())
-    assert [e["via"] for e in rebut["execucions"]] == ["ship", "ship", "agent"]
-    assert rebut["execucions"][-1]["check"] == "smoke" and rebut["segell"]["requerits"] == ["lint", "test", "smoke"]
-    assert "cost 0.42 $ · 9 torns" in r.stdout and "Checks fora del sandbox: smoke" in r.stdout
+    # v0.1.1: nucli agent no executa res fora del sandbox; el smoke queda pendent per a nucli finish
+    assert [e["via"] for e in rebut["execucions"]] == ["ship", "ship"]
+    assert not (Path.home() / "smoke-executat").exists()
+    assert rebut["segell"]["requerits"] == ["lint", "test", "smoke"] and rebut["segell"]["fora_sandbox_pendents"] == ["smoke"]
+    assert "cost 0.42 $ · 9 torns" in r.stdout and "rebut segellat" in r.stdout
+    assert ("Checks fora del sandbox pendents: smoke. No els executa cap agent: s'executaran a «nucli finish», "
+            "després que llegeixis el diff.") in r.stdout
+    assert "no els executis, els passa `nucli finish`" in args[1]
     assert r.stdout.strip().splitlines()[-1] == "revisa-ho i, si et va bé: cd .claude/worktrees/mt12 && nucli finish"
     assert (repo / ".nucli/agent/mt12.json").is_file()
 
