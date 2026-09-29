@@ -1,6 +1,6 @@
 # NUCLI.md — especificació i pla de la v0.1
 
-Última revisió: 2026-09-29 · Versió: **0.1.1** · Estat: **aprovat amb canvis (n478)**, i correcció de seguretat de la v0.1.1 (n505). La v0.1 es construeix per fases (§8), amb un commit per fase.
+Última revisió: 2026-09-29 · Versió: **0.1.2** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505) i correccions de la v0.1.2 (n511). La v0.1 es construeix per fases (§8), amb un commit per fase.
 
 Canvis de la n478 respecte de l'esborrany:
 1. El forat dels worktrees afecta **qualsevol** worktree, també un `claude --worktree` interactiu. `nucli init` detecta les regles ancorades al checkout principal i proposa (sense aplicar-les) les versions que cobreixen `.claude/worktrees/**`, i que l'`allow` dels scripts relatius només valgui al checkout principal. Mentre no hi siguin, `init` ho avisa i `nucli agent` no arrenca (§5.1, §5.4, §7.1).
@@ -12,6 +12,10 @@ Canvis de la v0.1.1 (n505), correcció de seguretat abans de les proves reals: r
 1. `nucli agent` ja no executa, quan l'agent acaba, cap check `fora_sandbox` ni res de la branca. Els deixa pendents al segell i acaba dient quins són i que s'executaran a `nucli finish` (§5.4).
 2. `ship seal` segella amb els `fora_sandbox` pendents (`fora_sandbox_pendents`); els de dins del sandbox han de ser en verd sobre HEAD, com abans (§5.2).
 3. `nucli finish`, abans d'executar res fora del sandbox, ensenya el `git diff --stat` contra la base, marca amb ⚠ els fitxers de la branca que formen part dels checks i demana confirmació explícita `[s/N]`, amb el no per defecte. Amb un sí, executa tots els checks automàtics (també els pendents) i segella; amb un no, no fa res (§5.2).
+
+Canvis de la v0.1.2 (n511), trobats a les proves al marcador:
+1. **Fitxers que el sandbox no deixa llegir.** Al marcador, el `denyRead` de `.env.*` inclou `.env.example`, que és a git, i `nucli ship plan` el donava per esborrat. Dins del sandbox (`nucli ship`), un fitxer no llegible ja no compta ni com a esborrat ni com a canvi: surt com a «no llegible (sandbox)» i no compta ni per al pla ni per a l'arbre net. Fora del sandbox (`nucli finish`), l'arbre net es comprova sense excepcions. El compromís és al §5.2 i la causa, al §7.7.
+2. **`tanca-sessio` no fa mai commit a `main`.** Si la sessió és a `main`, primer crea la branca `docs/sessio-AAAA-MM-DD-HHMM` i fa el commit allà. Acaba sempre recordant que la branca s'ha de pujar amb `nucli finish` (§5.6).
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
@@ -181,6 +185,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - El diff que classifica: `git diff --name-status -M <merge-base>` (també la ruta vella dels fitxers renomenats o esborrats) + els canvis sense commit + els fitxers nous. El merge-base es calcula contra `origin/<branca_base>` si existeix, i si no, contra `<branca_base>`.
 - Si el checkout principal no té `nucli.json`, plega i diu «primer executa `nucli init`».
 - Treu la llista de fitxers → regla que els toca → checks, i els checks requerits al final.
+- Els fitxers que no es poden llegir (v0.1.2) surten com a «no llegible (sandbox) → ni esborrat ni canvi: fora del pla». Si els commits de la branca (o l'índex) en canvien un, aquest canvi sí que compta, amb la nota «només compta el canvi dels commits»: git el sap sense llegir el fitxer.
 - **Regla fixa del nucli, no configurable**: si el diff toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore` o `githooks/**`, s'hi afegeix el check manual `revisio-config` («canvi de configuració o de seguretat: revisió humana»). Principi (e).
 
 **`nucli ship run <check>`**
@@ -195,11 +200,11 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 
 **`nucli ship seal`**
 - Torna a calcular els checks requerits a partir del diff, sense fiar-se del rebut, i segella només si:
-  - l'arbre de treball és net;
+  - l'arbre de treball és net, sense comptar els fitxers no llegibles (v0.1.2);
   - l'última execució de cada check automàtic requerit **de dins del sandbox** té codi 0;
   - aquella execució es va fer **sobre l'arbre exacte de HEAD** (`arbre == HEAD^{tree}`).
 - Els checks `fora_sandbox` que no s'hagin passat sobre HEAD no impedeixen segellar: queden a `fora_sandbox_pendents` i els executa `nucli finish` (v0.1.1).
-- El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents`, `fora_sandbox_pendents` i un `sha256` del contingut canònic del rebut.
+- El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents`, `fora_sandbox_pendents`, `no_llegibles` (v0.1.2) i un `sha256` del contingut canònic del rebut.
 - Si falla, diu exactament què falta: «test: executat sobre un arbre diferent del de HEAD (has editat després?)».
 
 **`nucli finish`** (l'executes sempre tu, en un terminal, és a dir, fora del sandbox). Va per passos, i al primer refús s'atura **sense executar ni pujar res**, amb el motiu i l'ordre que ho arregla:
@@ -207,7 +212,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
    - ets a la branca base;
    - no hi ha rebut, o no està segellat;
    - el `sha256` no quadra (algú ha tocat el rebut);
-   - HEAD ≠ `segell.head`, o l'arbre de treball no és net;
+   - HEAD ≠ `segell.head`, o l'arbre de treball no és net. Aquí, **sense excepcions** (v0.1.2): un fitxer que ha canviat és un refús, encara que dins del sandbox no es pogués llegir, i un fitxer que `finish` no pot llegir també ho és. Si el segell en portava de no llegibles, `finish` diu que ara els ha pogut comprovar;
    - algun check requerit de dins del sandbox, **recalculat ara**, té l'última execució fallida, sobre un arbre que no és el de HEAD, o no n'ha tingut cap. Els `fora_sandbox` pendents no són un refús: els executa el pas 4.
 2. **Checks manuals.** Si n'hi ha i no hi ha terminal, plega. Si n'hi ha, una persona els confirma un per un (`s/N`); un «no» atura el `finish` sense executar res.
 3. **Abans d'executar res fora del sandbox** (v0.1.1):
@@ -226,6 +231,16 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè la persona que ha llegit el diff ho confirmi abans que el codi de la branca s'executi fora del sandbox; després `finish` corre sol fins al PR.
 
 **Límit, dit clar**: el pas 4 executa codi de la branca (scripts i tests que l'agent pot haver tocat) fora del sandbox i amb xarxa. Per això només passa després que hagis vist el diff i ho hagis confirmat. Els ⚠ són una ajuda, no una garantia: no miren dins dels scripts, i un test pot importar qualsevol mòdul de la branca. Llegeix el diff sencer (`git diff <base>...HEAD`) si en tens dubtes.
+
+**Fitxers no llegibles: el compromís (v0.1.2)**
+- **El problema.** El `denyRead` del sandbox fa que ni tan sols se'n pugui fer `lstat` (EPERM, «Operation not permitted»). El pla fa servir `git diff --name-status <merge-base>`, que compara amb l'arbre de treball, i git hi dona per esborrat, sense cap avís i amb codi 0, tot el que no pot consultar. L'avís «Operation not permitted» només el treuen `git status` i `git add -A`, que se salten el fitxer. El nucli no el llegia enlloc: descartava l'stderr de git (§7.7).
+- **Com els troba.** `git ls-files -d` (els seguits que git no pot consultar surten com a esborrats) i `git ls-files --others` (els nous). `lstat` separa els que no hi són (`ENOENT`: esborrats de debò, que continuen comptant) dels que hi són però no es deixen llegir (`PermissionError`).
+- **Dins del sandbox** (`nucli ship plan`, `run` i `seal`), el nucli no pot saber com són aquests fitxers a l'arbre de treball, i ho diu en lloc d'endevinar-ho:
+  - al pla, «no llegible (sandbox)»: ni esborrat ni canvi. El que en diuen els commits i l'índex sí que compta, perquè git ho sap sense llegir el fitxer;
+  - a l'arbre net de `seal`, no compten. El segell els desa a `no_llegibles`;
+  - a l'arbre de cada `run`, un fitxer seguit queda com és a HEAD, i un de nou queda fora (sense això, `git add -A` hi plega).
+- **Fora del sandbox** (`nucli finish`, i també `nucli agent` en acabar), cap tolerància: el fitxer s'hi pot llegir, i si s'ha canviat de debò, `git status` ho veu i `finish` no puja res. Si `finish` tampoc no el pot llegir (per exemple, si algú el llança des del Bash de Claude, dins del sandbox), plega: sense llegir-lo, no pot dir que l'arbre sigui net.
+- **El que s'accepta.** Dins del sandbox, el pla i el segell són cecs als canvis sense commit d'aquests fitxers. Un agent no els pot llegir, però si el `denyWrite` no els cobreix, sí que els podria sobreescriure. La garantia és a `finish`, fora del sandbox, abans del push. Per això el segell de dins del sandbox no val per si sol.
 
 **Proteccions**
 - `.nucli/` va al `.gitignore`.
@@ -317,7 +332,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 
 **Descripció** (què fa, quan i amb quines paraules):
 
-> Tanca una sessió de treball en un repo amb `nucli.json`: extreu de la conversa les decisions, les trampes, les regles noves i l'estat, les escriu als docs que diu `nucli.json` i en fa commit, sense push. Usa-la quan l'usuari vulgui acabar o pausar la feina, amb frases com «tanca», «tanca la sessió», «hem acabat», «deixa-ho per avui», «plegem» o «ho deixem aquí».
+> Tanca una sessió de treball en un repo amb `nucli.json`: extreu de la conversa les decisions, les trampes, les regles noves i l'estat, les escriu als docs que diu `nucli.json` i en fa commit en una branca pròpia (mai a main), sense push. Usa-la quan l'usuari vulgui acabar o pausar la feina, amb frases com «tanca», «tanca la sessió», «hem acabat», «deixa-ho per avui», «plegem» o «ho deixem aquí».
 
 **Passos**
 1. Sense `nucli.json`, ho diu i s'atura.
@@ -328,8 +343,9 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **estat**: `docs/ESTAT.md` es reescriu sencer (ara · següent · bloquejat · data).
 3. No duplica: busca abans el que ja hi ha. Els ids nous són el màxim del fitxer + 1.
 4. Si algun d'aquests fitxers ja tenia canvis sense commit, t'ho diu i et pregunta abans de continuar.
-5. Fa commit **només dels docs que ha tocat** (`git add <camins>`), amb `docs(sessio): tancament del AAAA-MM-DD` (+ `(<id>)` si la branca en porta). Passa pel `commit-msg`.
-6. Acaba amb un resum de què ha escrit on. **Mai fa push.**
+5. **Mai fa commit a `main`** (ni a la `branca_base`) (v0.1.2). Si la sessió és a `main`, o amb HEAD desenganxat, primer crea una branca pròpia, `git switch -c docs/sessio-AAAA-MM-DD-HHMM`, amb la data i l'hora d'ara (`-2`, `-3`… si ja existeix), i fa el commit allà. Els canvis sense commit que hi hagués passen a la branca nova sense tocar-los.
+6. Fa commit **només dels docs que ha tocat** (`git add <camins>`), amb `docs(sessio): tancament del AAAA-MM-DD` (+ `(<id>)` si la branca en porta). Passa pel `commit-msg`.
+7. Acaba amb un resum de què ha escrit on, la branca i el hash. L'última línia recorda sempre que la branca s'ha de pujar amb `nucli finish`, des del terminal (abans, `nucli ship seal`). **Mai fa push.**
 
 ### 5.7 Mesura
 
@@ -396,6 +412,12 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 4. **El `.venv` no és al worktree**: les ordres de check hi arriben amb `$NUCLI_ARREL/.venv`.
 5. **`claude -p --worktree` deixa el worktree bloquejat**: el desbloqueja `nucli agent`.
 6. **La mesura amb `PostToolUse` no veu els `/skill` escrits a mà** (P6).
+7. **`git diff <commit>` dona per esborrat el que el sandbox no deixa llegir** (trobat a les proves al marcador, v0.1.2). Amb `denyRead` de `./.env.*`, dins del sandbox:
+   - `git status --short` només treu l'avís «.env.example: Operation not permitted» a l'stderr, sense cap línia, i surt amb 0;
+   - `git diff --name-status <merge-base>` (el que fa servir el pla) treu «D .env.example», **sense cap avís** i amb 0. Compara el commit amb l'arbre de treball, i per a git, un fitxer del qual no pot fer `lstat` és un fitxer esborrat;
+   - `git add -A` se salta els seguits amb el mateix avís, i plega (codi 128) amb un fitxer nou no llegible.
+
+   No és que el nucli llegeixi malament la sortida de git: la «D» ja ve de git, i l'avís no surt en aquesta ordre. Com es tracta, al §5.2 («Fitxers no llegibles»). Verificat amb `sandbox-exec` i git 2.50.1, el mateix mecanisme del sandbox de Claude Code al Mac.
 
 ## 8. Pla per fases
 

@@ -1,6 +1,6 @@
 ---
 name: tanca-sessio
-description: Tanca una sessió de treball en un repo amb nucli.json. Extreu de la conversa les decisions, les trampes, les regles noves i l'estat, les escriu als docs que diu nucli.json i en fa commit, sense push. Usa-la quan l'usuari vulgui acabar o pausar la feina, amb frases com «tanca», «tanca la sessió», «hem acabat», «deixa-ho per avui», «plegem» o «ho deixem aquí».
+description: Tanca una sessió de treball en un repo amb nucli.json. Extreu de la conversa les decisions, les trampes, les regles noves i l'estat, les escriu als docs que diu nucli.json i en fa commit en una branca pròpia (mai a main), sense push. Usa-la quan l'usuari vulgui acabar o pausar la feina, amb frases com «tanca», «tanca la sessió», «hem acabat», «deixa-ho per avui», «plegem» o «ho deixem aquí».
 ---
 
 # Tanca la sessió
@@ -33,8 +33,10 @@ Si una pila és buida, no hi escriguis res.
 
 - Mira `git status --porcelain -- <camins dels docs que tocaràs>`. Si algun ja tenia canvis sense commit, **digues-ho a l'usuari i pregunta-li** abans de continuar.
 
-## 5. Commit
+## 5. Branca i commit
 
+- **Mai facis commit a `main`**, ni a la `branca_base` de `nucli.json` si és una altra. Mira on ets amb `git branch --show-current`.
+- Si hi ets (o si surt buit, HEAD desenganxat), abans del commit crea una branca pròpia i passa-hi: `git switch -c docs/sessio-AAAA-MM-DD-HHMM`, amb la data i l'hora d'ara (`date +%Y-%m-%d-%H%M`). Si ja existeix, afegeix-hi `-2`, `-3`… Els canvis sense commit que hi hagués passen a la branca nova: no en toquis cap.
 - `git add` **només** dels docs que has tocat (camins concrets, mai `-A`).
 - Missatge: `docs(sessio): tancament del AAAA-MM-DD`. Si la branca porta un id de tasca amb els prefixos de `nucli.json` (`worktree-mt12` o `mt/mt12` → `mt12`), afegeix ` (mt12)` al final.
 - El hook `commit-msg` del nucli el validarà: si el rebutja, corregeix el missatge. Mai `--no-verify`.
@@ -42,4 +44,6 @@ Si una pila és buida, no hi escriguis res.
 
 ## 6. Resum final
 
-Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar) i el hash del commit.
+Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar), la branca i el hash del commit. Si has creat la branca, digues-ho.
+
+L'última línia, **sempre**: recorda a l'usuari que aquesta branca (digues quina) s'ha de pujar amb `nucli finish`, des del terminal. Abans, `nucli ship seal` (i `nucli ship run <check>` dels checks que demani `nucli ship plan`).

@@ -1,6 +1,7 @@
 """`nucli finish`: l'executa sempre una persona, al terminal (fora del sandbox).
 
-1. Git i rebut: comprovacions sobre el segell, HEAD i l'arbre. No executa res de la branca.
+1. Git i rebut: comprovacions sobre el segell, HEAD i l'arbre. No executa res de la branca. L'arbre net es
+   comprova sense excepcions: el que `ship` no podia llegir dins del sandbox, aquí ha de ser llegible i sense canvis.
 2. Checks manuals, confirmats un per un.
 3. Ensenya el `git diff --stat` contra la base, marca amb ⚠ els fitxers de la branca que formen part dels checks i
    demana confirmació explícita [s/N], amb el no per defecte. Amb un no, no fa res.
@@ -163,6 +164,9 @@ def ordre(args) -> int:
     automatics = pla.automatics(cfg)
     registre = {"hora": ara(), "head": head, "confirmacions": [], "execucions": [], "resultat": "en curs"}
     print(f"nucli finish · branca {branca} · HEAD {head[:8]} · requerits: {', '.join(pla.requerits) or 'cap'}")
+    amagats = rebut["segell"].get("no_llegibles")
+    if amagats:
+        print(f"Dins del sandbox no es podien llegir: {', '.join(amagats)}. Aquí sí, i no han canviat: l'arbre és net.")
     confirma_manuals(cfg, pla.manuals(cfg), registre)
     ensenya_diff(repo, cfg, pla, automatics)
     if automatics:

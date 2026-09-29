@@ -24,6 +24,7 @@ from .patrons import algun, coincideix
 # Regla fixa del nucli (principi e): tocar configuració o seguretat demana revisió humana. No és configurable.
 PATRONS_CONFIG = ["/nucli.json", ".claude/", ".mcp.json", ".worktreeinclude", ".gitignore", "githooks/"]
 MAX_SORTIDA = 20 * 1024
+NO_LLEGIBLE = "no llegible (sandbox)"
 
 
 def ara() -> str:
@@ -39,6 +40,7 @@ class Fitxer:
     regles: list            # índexs (1..n) de les regles que hi coincideixen
     checks: list
     config: bool = False
+    no_llegible: bool = False
 
 
 @dataclass
@@ -47,6 +49,12 @@ class Pla:
     merge_base: str
     fitxers: list = field(default_factory=list)
     requerits: list = field(default_factory=list)
+    no_llegibles: list = field(default_factory=list)
+
+    def fora_del_pla(self) -> list:
+        """Els no llegibles sense cap canvi als commits ni a l'índex: no compten ni com a esborrats ni com a canvi."""
+        al_pla = {f.cami for f in self.fitxers}
+        return [c for c in self.no_llegibles if c not in al_pla]
 
     def automatics(self, cfg: dict) -> list:
         return [c for c in self.requerits if c != CHECK_REVISIO_CONFIG and "ordre" in cfg["checks"][c]]
@@ -59,14 +67,36 @@ def text_manual(cfg: dict, nom: str) -> str:
     return TEXT_REVISIO_CONFIG if nom == CHECK_REVISIO_CONFIG else cfg["checks"][nom]["manual"]
 
 
-def fitxers_del_diff(repo: Repo, merge_base: str) -> list:
-    """(estat, camí) de tot el que canvia respecte del merge-base: commits, canvis sense commit i fitxers nous.
+def llegible(cami: Path) -> bool:
+    """Fals si no se'n pot ni fer `lstat` per falta de permís (el `denyRead` del sandbox dona EPERM)."""
+    try:
+        os.lstat(cami)
+    except PermissionError:
+        return False
+    except OSError:
+        pass
+    return True
 
-    Dels renomenats i esborrats també compta la ruta vella.
+
+def no_llegibles(repo: Repo) -> tuple:
+    """(seguits, nous): els fitxers de l'arbre de treball que git veuria però que no es poden llegir.
+
+    Dels seguits, `git status` se'n salta l'arbre de treball amb un avís, però `git diff <commit>` i `ls-files -d`
+    els donen per esborrats, sense avís. Els nous, `ls-files --others` els llista i `git add -A` hi plega.
+    `lstat` separa els que no hi són dels que hi són però no es deixen llegir.
     """
-    out = []
-    camps = repo.git("diff", "--name-status", "-M", "-z", merge_base).split("\0")
-    i = 0
+    def filtra(*args):
+        return [c for c in repo.git("ls-files", *args, "-z").split("\0") if c and not llegible(repo.worktree / c)]
+    return filtra("-d"), filtra("--others", "--exclude-standard")
+
+
+def sense(camins: list) -> list:
+    """Pathspec de tot l'arbre menys aquests camins (literals)."""
+    return (["--", "."] + [f":(exclude,literal){c}" for c in camins]) if camins else []
+
+
+def _name_status(sortida: str) -> list:
+    out, camps, i = [], sortida.split("\0"), 0
     while i < len(camps) and camps[i]:
         estat = camps[i]
         if estat[0] in "RC":
@@ -76,9 +106,24 @@ def fitxers_del_diff(repo: Repo, merge_base: str) -> list:
         else:
             out.append((estat[0], camps[i + 1]))
             i += 2
+    return out
+
+
+def fitxers_del_diff(repo: Repo, merge_base: str, amaga: list = ()) -> list:
+    """(estat, camí) de tot el que canvia respecte del merge-base: commits, canvis sense commit i fitxers nous.
+
+    Dels renomenats i esborrats també compta la ruta vella. Dels camins d'`amaga` (els no llegibles, dins del
+    sandbox), l'arbre de treball no compta: només el que en diuen els commits i l'índex, que git sap sense llegir-los.
+    """
+    out = _name_status(repo.git("diff", "--name-status", "-M", "-z", merge_base))
     for cami in repo.git("ls-files", "--others", "--exclude-standard", "-z").split("\0"):
         if cami:
             out.append(("?", cami))
+    if amaga:
+        amagats = set(amaga)
+        out = [(e, c) for e, c in out if c not in amagats]
+        out += _name_status(repo.git("diff", "--cached", "--name-status", "--no-renames", "-z", merge_base, "--",
+                                     *[f":(literal){c}" for c in amaga]))
     vistos, unics = set(), []
     for e, c in out:
         if c not in vistos:
@@ -111,35 +156,55 @@ def classifica(cfg: dict, fitxers: list) -> tuple:
     return resultat, ordenats
 
 
-def calcula_pla(repo: Repo) -> Pla:
+def calcula_pla(repo: Repo, tolera: bool = False) -> Pla:
+    """El pla del diff contra la base. Amb `tolera` (ship, dins del sandbox), l'arbre de treball dels fitxers no
+    llegibles no compta: no surten com a esborrats, sinó a `no_llegibles`."""
     cfg = repo.config()
     ref = repo.ref_base()
     if not repo.git_ok("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"):
         raise Plega(f"no trobo la base «{ref}» (branca_base de nucli.json)")
     mb = repo.git("merge-base", ref, "HEAD")
-    fitxers, requerits = classifica(cfg, fitxers_del_diff(repo, mb))
-    return Pla(ref, mb, fitxers, requerits)
+    amaga = sum(no_llegibles(repo), []) if tolera else []
+    fitxers, requerits = classifica(cfg, fitxers_del_diff(repo, mb, amaga))
+    for f in fitxers:
+        f.no_llegible = f.cami in amaga
+    return Pla(ref, mb, fitxers, requerits, amaga)
 
 
 # ---------- arbre i estat de git ----------
 
-def arbre_de_treball(repo: Repo) -> str:
-    """L'arbre que tindria un commit de tot el directori de treball ara mateix (git add -A en un índex temporal)."""
+def arbre_de_treball(repo: Repo, tolera: bool = False) -> str:
+    """L'arbre que tindria un commit de tot el directori de treball ara mateix (git add -A en un índex temporal).
+
+    Un fitxer seguit que no es pot llegir, `add -A` el deixa com és a HEAD. Amb `tolera`, els nous no llegibles
+    queden fora (sense, `add -A` hi plega).
+    """
     d = repo.dir_nucli(crea=True)
     index = d / f"index-{os.getpid()}"
     env = dict(os.environ, GIT_INDEX_FILE=str(index))
     try:
         if repo.git_ok("rev-parse", "--verify", "--quiet", "HEAD"):
             git("read-tree", "HEAD", cwd=repo.worktree, env=env)
-        git("add", "-A", cwd=repo.worktree, env=env)
+        git("add", "-A", *sense(no_llegibles(repo)[1] if tolera else []), cwd=repo.worktree, env=env)
         return git("write-tree", cwd=repo.worktree, env=env)
     finally:
         if index.exists():
             index.unlink()
 
 
-def canvis_pendents(repo: Repo) -> list:
-    return [l for l in repo.git("status", "--porcelain", "--untracked-files=all").splitlines() if l.strip()]
+def canvis_pendents(repo: Repo, tolera: bool = False) -> list:
+    """El que fa que l'arbre de treball no sigui net.
+
+    Dels fitxers no llegibles, git no en pot veure l'arbre de treball. Amb `tolera` (ship, dins del sandbox) no
+    compten. Sense (finish, fora del sandbox), cadascun és una línia més: si no es pot llegir, l'arbre no és net.
+    """
+    seguits, nous = no_llegibles(repo)
+    linies = [l for l in repo.git("status", "--porcelain", "--untracked-files=all", *sense(nous)).splitlines()
+              if l.strip()]
+    if not tolera:
+        linies += [f"{c}: no el puc llegir (sense permís), i sense llegir-lo no puc dir que no hagi canviat"
+                   for c in seguits + nous]
+    return linies
 
 
 def arbre_head(repo: Repo) -> str:
@@ -233,12 +298,13 @@ def estat_del_rebut(cfg: dict, pla: "Pla", rebut: dict, arbre: str) -> tuple:
 MISSATGE_FORA = "No els executa cap agent: s'executaran a «nucli finish», després que llegeixis el diff."
 
 
-def segella(repo: Repo, cfg: dict, pla: "Pla", rebut: dict) -> dict:
+def segella(repo: Repo, cfg: dict, pla: "Pla", rebut: dict, tolera: bool = False) -> dict:
     """Segella el rebut si l'arbre és net i els checks de dins del sandbox són en verd sobre HEAD.
 
-    Els `fora_sandbox` que falten queden a `fora_sandbox_pendents`. Plega si no pot segellar.
+    Els `fora_sandbox` que falten queden a `fora_sandbox_pendents`. Amb `tolera` (ship seal), els fitxers no
+    llegibles no compten per a l'arbre net i queden a `no_llegibles`. Plega si no pot segellar.
     """
-    pendents = canvis_pendents(repo)
+    pendents = canvis_pendents(repo, tolera)
     if pendents:
         raise Plega("l'arbre de treball no és net: fes commit (o descarta) abans de segellar:\n  " + "\n  ".join(pendents[:20]))
     arbre = arbre_head(repo)
@@ -247,7 +313,8 @@ def segella(repo: Repo, cfg: dict, pla: "Pla", rebut: dict) -> dict:
         raise Plega("no segello:\n  " + "\n  ".join(problemes))
     segell = {
         "head": repo.git("rev-parse", "HEAD"), "arbre": arbre, "hora": ara(), "requerits": pla.requerits,
-        "manuals_pendents": pla.manuals(cfg), "fora_sandbox_pendents": list(fora), "nucli": VERSIO,
+        "manuals_pendents": pla.manuals(cfg), "fora_sandbox_pendents": list(fora),
+        "no_llegibles": list(pla.no_llegibles), "nucli": VERSIO,
     }
     rebut["segell"] = segell
     segell["sha256"] = sha_rebut(rebut)
@@ -324,9 +391,9 @@ def entorn_nucli(repo: Repo, check: str) -> dict:
     return env
 
 
-def executa_check(repo: Repo, cfg: dict, nom: str, via: str) -> dict:
+def executa_check(repo: Repo, cfg: dict, nom: str, via: str, tolera: bool = False) -> dict:
     ordre_shell = cfg["checks"][nom]["ordre"]
-    arbre = arbre_de_treball(repo)
+    arbre = arbre_de_treball(repo, tolera)
     head = repo.git("rev-parse", "HEAD")
     print(f"── nucli · {nom}: {ordre_shell}", flush=True)
     t0 = time.monotonic()
@@ -349,7 +416,7 @@ def executa_check(repo: Repo, cfg: dict, nom: str, via: str) -> dict:
         "sortida": buf.decode("utf-8", "replace"), "retallada": retallada, "hora": ara(),
         "head": head, "arbre": arbre, "via": via,
     }
-    despres = arbre_de_treball(repo)
+    despres = arbre_de_treball(repo, tolera)
     if despres != arbre:
         execucio["arbre_despres"] = despres
     estat = "✓" if codi == 0 else f"✗ codi {codi}"
@@ -363,20 +430,25 @@ def executa_check(repo: Repo, cfg: dict, nom: str, via: str) -> dict:
 
 def ordre_plan(repo: Repo) -> int:
     cfg = repo.config()
-    pla = calcula_pla(repo)
+    pla = calcula_pla(repo, tolera=True)
     print(f"nucli ship plan · branca {repo.branca()} · base {pla.ref_base} (merge-base {pla.merge_base[:8]})")
     print(f"Regles: {repo.cami_config}")
-    if not pla.fitxers:
-        print("Cap canvi respecte de la base: cap check requerit.")
-        return 0
-    ample = min(max(len(f.cami) for f in pla.fitxers), 48)
+    fora = pla.fora_del_pla()
+    if pla.fitxers or fora:
+        ample = min(max(len(c) for c in [f.cami for f in pla.fitxers] + fora), 48)
     for f in pla.fitxers:
         if f.regles:
             on = "regla " + ", ".join(str(n) for n in f.regles)
         else:
             on = "sense regla → per defecte"
         checks = ", ".join(f.checks) if f.checks else "(cap)"
-        print(f"  {f.estat}  {f.cami:<{ample}}  {on} → {checks}")
+        nota = f"  · {NO_LLEGIBLE}: només compta el canvi dels commits" if f.no_llegible else ""
+        print(f"  {f.estat}  {f.cami:<{ample}}  {on} → {checks}{nota}")
+    for c in fora:
+        print(f"  ·  {c:<{ample}}  {NO_LLEGIBLE} → ni esborrat ni canvi: fora del pla")
+    if not pla.fitxers:
+        print("Cap canvi respecte de la base: cap check requerit.")
+        return 0
     if not pla.requerits:
         print("Checks requerits: cap.")
         return 0
@@ -400,7 +472,7 @@ def ordre_run(repo: Repo, nom: str) -> int:
         raise Plega(f"el check «{nom}» no és a nucli.json ({', '.join(cfg['checks']) or 'no n’hi ha cap'})", codi=2)
     branca = branca_amb_rebut(repo)
     rebut = llegeix_rebut(repo, branca)
-    execucio = executa_check(repo, cfg, nom, via="ship")
+    execucio = executa_check(repo, cfg, nom, via="ship", tolera=True)
     rebut["execucions"].append(execucio)
     rebut["segell"] = None  # qualsevol execució nova invalida el segell anterior
     desa_rebut(repo, rebut)
@@ -410,10 +482,13 @@ def ordre_run(repo: Repo, nom: str) -> int:
 def ordre_seal(repo: Repo) -> int:
     cfg = repo.config()
     branca = branca_amb_rebut(repo)
-    pla = calcula_pla(repo)
+    pla = calcula_pla(repo, tolera=True)
     rebut = llegeix_rebut(repo, branca)
-    segell = segella(repo, cfg, pla, rebut)
+    segell = segella(repo, cfg, pla, rebut, tolera=True)
     print(f"nucli ship seal · segellat · HEAD {segell['head'][:8]} · requerits: {', '.join(pla.requerits) or 'cap'}")
+    if segell["no_llegibles"]:
+        print(f"No llegibles (sandbox), no compten per a l'arbre net: {', '.join(segell['no_llegibles'])}. "
+              "Fora del sandbox, nucli finish ho comprova sense excepcions.")
     if segell["fora_sandbox_pendents"]:
         print(f"Fora del sandbox, pendents: {', '.join(segell['fora_sandbox_pendents'])}. {MISSATGE_FORA}")
     if segell["manuals_pendents"]:
