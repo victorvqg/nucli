@@ -1,6 +1,7 @@
 """Peces comunes: errors, crides a git i les dues arrels (checkout principal i worktree)."""
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -96,6 +97,12 @@ class Repo:
         if crea:
             prepara_dir_nucli(d)
         return d
+
+
+def port_de(cami) -> int:
+    """4100 + (sha256(camí real) mod 900): estable per a cada worktree. Hi pot haver col·lisions i s'accepta."""
+    real = os.path.realpath(str(cami))
+    return 4100 + int(hashlib.sha256(real.encode("utf-8")).hexdigest(), 16) % 900
 
 
 def prepara_dir_nucli(d: Path) -> None:

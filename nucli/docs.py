@@ -209,6 +209,10 @@ def te_bloc(cami: Path) -> bool:
     return cami.is_file() and any(l.strip() == MARCA_BLOC for l in cami.read_text(encoding="utf-8").splitlines())
 
 
+def importa_agents(cami: Path) -> bool:
+    return any(l.strip() == "@AGENTS.md" for l in cami.read_text(encoding="utf-8").splitlines())
+
+
 def amb_bloc(text: str, bloc: str) -> str:
     return text.rstrip("\n") + "\n\n" + bloc
 

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from . import config, docs
+from . import config, docs, permisos
 from .comu import FITXER_CONFIG, Plega, Repo, prepara_dir_nucli
 from .config import ROLS, cami_doc
 
@@ -149,6 +149,9 @@ def pas_instruccions(ctx: Context) -> None:
         if docs.te_bloc(cami):
             ctx.afegeix("ja hi és", cami.name, f"ja té el bloc «{docs.MARCA_BLOC[3:]}»")
             continue
+        if per_claude and agents.exists() and docs.importa_agents(cami):
+            ctx.afegeix("ja hi és", cami.name, "importa @AGENTS.md, on va el bloc «Nucli»")
+            continue
         original = cami.read_text(encoding="utf-8")
         bloc = docs.bloc_nucli(cfg, per_claude)
         proposta = docs.amb_bloc(original, bloc)
@@ -168,8 +171,46 @@ def pas_instruccions(ctx: Context) -> None:
                     "Si fas servir Kimi o Codex, crea'l i deixa «@AGENTS.md» a CLAUDE.md")
 
 
-# Passos que s'afegeixen a les fases següents (gitignore, settings, worktrees, hooks de git).
-PASSOS = []
+# ---------- pas 5: el que s'afegeix sense tocar res més ----------
+
+ENTRADES_GITIGNORE = [".nucli/"]
+REGLA_FINISH = "Bash(nucli finish:*)"
+SETTINGS = ".claude/settings.json"
+
+
+def pas_gitignore(ctx: Context) -> None:
+    cami = ctx.arrel / ".gitignore"
+    text = cami.read_text(encoding="utf-8") if cami.is_file() else ""
+    linies = {l.strip() for l in text.splitlines()}
+    falten = [e for e in ENTRADES_GITIGNORE
+              if not {e, e.rstrip("/"), "/" + e, "/" + e.rstrip("/")} & linies]
+    if not falten:
+        ctx.afegeix("ja hi és", ".gitignore", ", ".join(ENTRADES_GITIGNORE))
+        return
+    nou = text + ("\n" if text and not text.endswith("\n") else "") + "# nucli\n" + "\n".join(falten) + "\n"
+    ctx.afegeix("afegeix", ".gitignore", ", ".join(falten), fes=escriu_fitxer(cami, nou))
+
+
+def pas_ask_finish(ctx: Context) -> None:
+    """`nucli finish` sempre el llança una persona: si Claude l'intenta, et pregunta (i cap allow no ho salta)."""
+    cami = ctx.arrel / SETTINGS
+    text = cami.read_text(encoding="utf-8") if cami.is_file() else None
+    try:
+        if text and REGLA_FINISH in (json.loads(text).get("permissions", {}).get("deny") or []):
+            ctx.afegeix("ja hi és", SETTINGS, f"{REGLA_FINISH} a deny (encara més estricte)")
+            return
+        nou = permisos.afegeix_regla(text, "ask", REGLA_FINISH)
+    except (Plega, ValueError, AttributeError) as e:
+        ctx.afegeix("avís", SETTINGS, f"no hi afegeixo {REGLA_FINISH}: {e}")
+        return
+    if nou is None:
+        ctx.afegeix("ja hi és", SETTINGS, f"{REGLA_FINISH} a ask")
+    else:
+        ctx.afegeix("afegeix", SETTINGS, f"{REGLA_FINISH} a ask, i res més", fes=escriu_fitxer(cami, nou),
+                    extra=diff(text or "", nou, SETTINGS, SETTINGS))
+
+
+PASSOS = [pas_gitignore, pas_ask_finish]
 
 
 def imprimeix(ctx: Context) -> None:

@@ -42,6 +42,10 @@ def test_repo_buit_crea_tot(fes_repo):
     assert cfg["docs"]["decisions"] == {"cami": "docs/DECISIONS.md", "format": "adr"}
     assert "no he endevinat cap check" in r.stdout
     assert "No he fet cap commit" in r.stdout
+    abans = instantania(arrel)
+    r = nucli("init", cwd=arrel)
+    assert "Res a fer: tot ja hi és." in r.stdout and instantania(arrel) == abans
+    assert "CLAUDE.md · importa @AGENTS.md" in r.stdout
 
 
 def test_com_el_marcador_no_toca_res_i_crea_nomes_estat_i_trampes(com_el_marcador):
@@ -53,12 +57,12 @@ def test_com_el_marcador_no_toca_res_i_crea_nomes_estat_i_trampes(com_el_marcado
     for cami, contingut in abans.items():
         assert despres[cami] == contingut, f"{cami} ha canviat"
     nous = sorted(set(despres) - set(abans))
-    assert nous == [".nucli/.gitignore", ".nucli/proposta/AGENTS.md", ".nucli/proposta/CLAUDE.md",
-                    "docs/ESTAT.md", "docs/TRAMPES.md", "nucli.json"]
+    assert nous == [".claude/settings.json", ".gitignore", ".nucli/.gitignore", ".nucli/proposta/AGENTS.md",
+                    ".nucli/proposta/CLAUDE.md", "docs/ESTAT.md", "docs/TRAMPES.md", "nucli.json"]
     assert "Lliçons apreses" in (arrel / "docs/TRAMPES.md").read_text()
     assert "3. Estat actual i pla de treball" in (arrel / "docs/ESTAT.md").read_text()
     assert git(arrel, "status", "--porcelain", "--untracked-files=all").splitlines() == [
-        "?? docs/ESTAT.md", "?? docs/TRAMPES.md", "?? nucli.json"]
+        "?? .claude/settings.json", "?? .gitignore", "?? docs/ESTAT.md", "?? docs/TRAMPES.md", "?? nucli.json"]
 
     cfg = json.loads((arrel / "nucli.json").read_text())
     assert cfg["docs"]["arquitectura"] == "INFORME_TECNIC.md"
