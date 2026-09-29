@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import ARREL_NUCLI, commit, escriu, git, nucli
+from conftest import ARREL_NUCLI, escriu, git, nucli
 from nucli import docs
 
 TASQUES = "# Tasques\n\n## A fer\n\n### mt3 · c\n\n## Fet\n\n### mt2 · b\n### mt1 · a\n### ma9 · torn\n"

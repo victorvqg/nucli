@@ -342,7 +342,8 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - no esborra ni reordena res i no afegeix duplicats (reconeix els seus per `nucli hook`);
    - comprova que el resultat sigui l'original més els hooks del nucli.
    
-   Les ordres dels hooks porten el camí absolut, no depenen del PATH.
+   Les ordres dels hooks porten el camí absolut, no depenen del PATH, i un `timeout` de 10 s.
+4. Si el clon del nucli s'ha mogut, tornar-lo a executar actualitza els enllaços i els camins dels hooks (P8).
 
 **`--dry-run`**: diu què faria i ensenya el diff del JSON.
 

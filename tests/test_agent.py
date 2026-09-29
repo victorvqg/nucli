@@ -109,7 +109,8 @@ def test_agent_que_s_atura(repo, entorn_agent, monkeypatch):
 
 def test_amb_tasca_explicita(repo, entorn_agent):
     r = nucli("agent", "neteja-css", "--tasca", "Treu el CSS mort", "--torns", "5", "--pressupost", "1.5", cwd=repo)
-    dades, args, _, _ = arguments(entorn_agent)
+    assert r.returncode == 0, r.stdout + r.stderr
+    _, args, _, _ = arguments(entorn_agent)
     assert "Treu el CSS mort" in args[1]
     assert args[args.index("--max-turns") + 1] == "5" and args[args.index("--max-budget-usd") + 1] == "1.5"
 

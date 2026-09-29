@@ -134,7 +134,7 @@ def test_init_avisa_i_escriu_la_proposta(marcador):
     r = nucli("init", cwd=marcador)
     assert r.returncode == 0, r.stderr
     text = (marcador / ".nucli/proposta/permisos.md").read_text()
-    assert f"substitueix `Bash(bash scripts/llanca-sync.sh)`" in text and "origin/main" in text
+    assert "substitueix `Bash(bash scripts/llanca-sync.sh)`" in text and "origin/main" in text
     assert "⚠ WORKTREES NO PROTEGITS" in r.stdout
     settings = json.loads((marcador / ".claude/settings.json").read_text())
     assert "Bash(bash scripts/llanca-sync.sh)" in settings["permissions"]["allow"]  # no aplica res

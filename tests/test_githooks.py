@@ -1,13 +1,11 @@
 """F5: githooks/pre-push i githooks/commit-msg, i core.hooksPath a nucli init."""
 import json
 import os
-import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
-from conftest import ARREL_NUCLI, BIN, CONFIG_MINIMA, escriu, git, nucli, sh
+from conftest import ARREL_NUCLI, CONFIG_MINIMA, escriu, git, nucli, sh
 from nucli import githooks
 
 CONFIG = dict(CONFIG_MINIMA, tasques={"fitxer": "TASQUES.md", "prefix": "mt"})
