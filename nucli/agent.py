@@ -155,7 +155,8 @@ def ordre(args) -> int:
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     print(f"nucli agent · {args.id} · base {ref} · màx. {torns} torns i {pressupost} $ → {log.relative_to(repo.arrel)}", flush=True)
     with open(log, "w", encoding="utf-8") as sortida, open(err, "w", encoding="utf-8") as errors:
-        codi = subprocess.run(ordre_claude, cwd=str(repo.arrel), env=env, stdout=sortida, stderr=errors).returncode
+        codi = subprocess.run(ordre_claude, cwd=str(repo.arrel), env=env, stdin=subprocess.DEVNULL,
+                              stdout=sortida, stderr=errors).returncode
 
     wt = repo.arrel / ".claude" / "worktrees" / args.id
     resultat = {}
