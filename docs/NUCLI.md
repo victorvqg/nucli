@@ -263,6 +263,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **`--allowedTools`**: `Read Edit Write Grep Glob "Bash(git:*)" "Bash(nucli ship plan)" "Bash(nucli ship run:*)" "Bash(nucli ship seal)" "Bash(nucli port)"`;
    - **`--disallowedTools`**:
      - tota la llista d'`agent.sh`: `git push|merge|checkout|switch|rebase|reset|-C|config|diff --no-index|add -f|add --force`, `curl`, `npx`, `npm`, `pip`, `gh`, `WebFetch` i `WebSearch`;
+     - `git commit --no-verify` i `git commit -n`, perquè el `commit-msg` no es pugui saltar;
      - `nucli finish|neteja|init|agent`;
      - les `prohibides` de `nucli.json`, i per a cada una que executa un script del repo amb camí relatiu, també les variants amb el camí absolut del checkout principal (`/…` i `~/…`) i amb `./`. Si no, quan apliquis la proposta del §7.1 (l'`allow` amb camí absolut), l'agent podria llançar l'script del checkout principal fora del sandbox;
      - totes les regles `allow` de Bash del projecte que apunten al checkout principal: són per a les teves sessions al checkout principal, i l'agent treballa al worktree.
@@ -297,6 +298,8 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - si hi ha 3 paraules o més i les estrangeres guanyen, rebutja i mostra quines ha vist.
    
    Sortida: `NUCLI_IDIOMA=0` (anotada igual que `NUCLI_MAIN`).
+
+**Sortides d'emergència**: només valen si es poden anotar a `~/.nucli/excepcions.jsonl`. Dins del sandbox, on `~/.nucli` no s'hi pot escriure, no es concedeixen: un agent no se les pot donar a si mateix.
 
 ### 5.6 Skill `tanca-sessio` (`skills/tanca-sessio/SKILL.md`, enllaçada a `~/.claude/skills/tanca-sessio`)
 

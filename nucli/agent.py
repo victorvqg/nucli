@@ -24,8 +24,8 @@ EINES_PERMESES = ["Read", "Edit", "Write", "Grep", "Glob", "Bash(git:*)", "Bash(
 EINES_PROHIBIDES = [
     "Bash(git push:*)", "Bash(git merge:*)", "Bash(git checkout:*)", "Bash(git switch:*)", "Bash(git rebase:*)",
     "Bash(git reset:*)", "Bash(git -C:*)", "Bash(git config:*)", "Bash(git diff --no-index:*)", "Bash(git add -f:*)",
-    "Bash(git add --force:*)", "Bash(curl:*)", "Bash(npx:*)", "Bash(npm:*)", "Bash(pip:*)", "Bash(gh:*)",
-    "WebFetch", "WebSearch",
+    "Bash(git add --force:*)", "Bash(git commit --no-verify:*)", "Bash(git commit -n:*)",
+    "Bash(curl:*)", "Bash(npx:*)", "Bash(npm:*)", "Bash(pip:*)", "Bash(gh:*)", "WebFetch", "WebSearch",
     "Bash(nucli finish:*)", "Bash(nucli neteja:*)", "Bash(nucli init:*)", "Bash(nucli agent:*)",
 ]
 

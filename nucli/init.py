@@ -251,7 +251,41 @@ def pas_permisos_worktrees(ctx: Context) -> None:
                     fes=_escriu_proposta(ctx.arrel, "permisos.md", text), extra=extra)
 
 
-PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_permisos_worktrees]
+GITHOOKS = Path(__file__).resolve().parent.parent / "githooks"
+
+
+def _es_de_nucli(cami: str) -> bool:
+    """Un core.hooksPath que apunta a uns githooks del nucli (encara que el clon s'hagi mogut)."""
+    p = Path(cami)
+    if p.name != "githooks":
+        return False
+    hook = p / "pre-push"
+    return not p.exists() or (hook.is_file() and "nucli githook" in hook.read_text(encoding="utf-8", errors="ignore"))
+
+
+def pas_hookspath(ctx: Context) -> None:
+    desti = str(GITHOOKS)
+    local = ctx.repo.git("config", "--local", "--get", "core.hooksPath", check=False)
+    global_ = ctx.repo.git("config", "--global", "--get", "core.hooksPath", check=False)
+    if local == desti:
+        ctx.afegeix("ja hi és", "core.hooksPath", desti)
+        return
+    if local and not _es_de_nucli(local):
+        ctx.afegeix("avís", "core.hooksPath", f"el repo ja en té un ({local}): no el trepitjo; els hooks del nucli no "
+                    "s'activen. Crida'ls des dels teus hooks si els vols")
+        return
+    if not local and global_:
+        ctx.afegeix("avís", "core.hooksPath", f"tens un core.hooksPath global ({global_}): no el tapo; els hooks del "
+                    "nucli no s'activen en aquest repo")
+        return
+
+    def _fes():
+        ctx.repo.git("config", "--local", "core.hooksPath", desti)
+    detall = f"{desti} (abans {local}: el nucli s'ha mogut)" if local else desti
+    ctx.afegeix("activa", "core.hooksPath", detall, fes=_fes)
+
+
+PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_hookspath, pas_permisos_worktrees]
 
 
 def avis_worktrees(an) -> str:

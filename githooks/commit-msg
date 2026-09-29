@@ -1,0 +1,4 @@
+#!/bin/sh
+# nucli · commit-msg: Conventional Commits, id de la tasca de la branca i idioma (sortida d'emergència: NUCLI_IDIOMA=0).
+# L'activa «nucli init» amb core.hooksPath. Primer crida .git/hooks/commit-msg del repo, si n'hi ha.
+exec "$(dirname "$0")/../bin/nucli" githook commit-msg "$@"

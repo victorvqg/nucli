@@ -1,0 +1,4 @@
+#!/bin/sh
+# nucli · pre-push: bloca el push a la branca base (sortida d'emergència: NUCLI_MAIN=1).
+# L'activa «nucli init» amb core.hooksPath. Primer crida .git/hooks/pre-push del repo, si n'hi ha.
+exec "$(dirname "$0")/../bin/nucli" githook pre-push "$@"
