@@ -58,7 +58,8 @@ def test_com_el_marcador_no_toca_res_i_crea_nomes_estat_i_trampes(com_el_marcado
         assert despres[cami] == contingut, f"{cami} ha canviat"
     nous = sorted(set(despres) - set(abans))
     assert nous == [".claude/settings.json", ".gitignore", ".nucli/.gitignore", ".nucli/proposta/AGENTS.md",
-                    ".nucli/proposta/CLAUDE.md", ".worktreeinclude", "docs/ESTAT.md", "docs/TRAMPES.md", "nucli.json"]
+                    ".nucli/proposta/CLAUDE.md", ".nucli/proposta/allow.md", ".worktreeinclude", "docs/ESTAT.md",
+                    "docs/TRAMPES.md", "nucli.json"]
     assert "Lliçons apreses" in (arrel / "docs/TRAMPES.md").read_text()
     assert "3. Estat actual i pla de treball" in (arrel / "docs/ESTAT.md").read_text()
     assert git(arrel, "status", "--porcelain", "--untracked-files=all").splitlines() == [
@@ -122,7 +123,7 @@ def test_si_ja_tenen_el_bloc_no_proposa_res(com_el_marcador):
         escriu(arrel, f, (arrel / f).read_text() + "\n## Nucli\n\nx\n")
     r = nucli("init", cwd=arrel)
     assert "ja hi és  CLAUDE.md · ja té el bloc «Nucli»" in r.stdout
-    assert not (arrel / ".nucli/proposta").exists()
+    assert not (arrel / ".nucli/proposta/CLAUDE.md").exists() and not (arrel / ".nucli/proposta/AGENTS.md").exists()
 
 
 def test_nomes_agents_crea_claude_que_l_importa(fes_repo):

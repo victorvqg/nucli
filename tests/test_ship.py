@@ -437,3 +437,22 @@ def test_hook_deixa_la_resta(wt, fes_repo, tmp_path):
     assert r.returncode == 0 and r.stdout == ""
     r = nucli("hook", "protegeix-rebuts", cwd=tmp_path, entrada="no és json")
     assert r.returncode == 0 and r.stdout == ""
+
+
+def test_init_proposa_els_allow_de_ship_sense_sandbox(fes_repo):
+    sense = json.loads(SETTINGS_MARCADOR)
+    del sense["sandbox"]
+    arrel = fes_repo(config=CONFIG, fitxers={".claude/settings.json": json.dumps(sense, indent=2)})
+    r = nucli("init", cwd=arrel)
+    assert "proposa   .nucli/proposta/allow.md · repo sense sandbox" in r.stdout
+    text = (arrel / ".nucli/proposta/allow.md").read_text()
+    assert '"Bash(nucli ship run:*)",' in text and "nucli finish" in text
+    assert "Bash(nucli ship run:*)" not in (arrel / ".claude/settings.json").read_text()  # no l'aplica
+    assert "Res a fer" in nucli("init", cwd=arrel).stdout
+
+
+def test_init_amb_sandbox_no_proposa_allow(fes_repo):
+    arrel = fes_repo(config=CONFIG, fitxers={".claude/settings.json": SETTINGS_MARCADOR})  # té sandbox.enabled
+    r = nucli("init", cwd=arrel)
+    assert "ja hi és  allow de nucli ship · amb el sandbox actiu" in r.stdout
+    assert not (arrel / ".nucli/proposta/allow.md").exists()

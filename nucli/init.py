@@ -285,7 +285,42 @@ def pas_hookspath(ctx: Context) -> None:
     ctx.afegeix("activa", "core.hooksPath", detall, fes=_fes)
 
 
-PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_hookspath, pas_permisos_worktrees]
+ALLOWS_SHIP = ["Bash(nucli ship plan)", "Bash(nucli ship run:*)", "Bash(nucli ship seal)", "Bash(nucli port)",
+               "Bash(nucli usage)"]
+
+
+def pas_allows_ship(ctx: Context) -> None:
+    """Sense sandbox, Claude et preguntaria cada `nucli ship`: te'n proposa els allow (no els aplica mai)."""
+    fonts = [ctx.arrel / SETTINGS, ctx.arrel / ".claude/settings.local.json", Path.home() / ".claude/settings.json"]
+    dades = []
+    for f in fonts:
+        try:
+            dades.append(json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {})
+        except ValueError:
+            dades.append({})
+    if any(isinstance(d.get("sandbox"), dict) and d["sandbox"].get("enabled") for d in dades):
+        ctx.afegeix("ja hi és", "allow de nucli ship", "amb el sandbox actiu, autoAllowBashIfSandboxed ja els aprova")
+        return
+    tenim = {r for d in dades for r in ((d.get("permissions") or {}).get("allow") or [])}
+    falten = [r for r in ALLOWS_SHIP if r not in tenim]
+    if not falten:
+        ctx.afegeix("ja hi és", "allow de nucli ship", ", ".join(ALLOWS_SHIP))
+        return
+    text = ("# Allow per a nucli ship (proposta de `nucli init`, no aplicada)\n\n"
+            "Aquest repo no té el sandbox actiu. Si vols que Claude no et pregunti cada `nucli ship`, afegeix això a "
+            "`permissions.allow` de `.claude/settings.json`. `ship run` només executa les ordres del `nucli.json` del "
+            "checkout principal. `nucli finish` es queda a `ask`.\n\n"
+            + "".join(f"    \"{r}\",\n" for r in falten))
+    dest = ctx.arrel / ".nucli" / DIR_PROPOSTA / "allow.md"
+    rel = dest.relative_to(ctx.arrel).as_posix()
+    if dest.is_file() and dest.read_text(encoding="utf-8") == text:
+        ctx.afegeix("ja hi és", rel, "proposta d'allow per a nucli ship")
+        return
+    ctx.afegeix("proposa", rel, "repo sense sandbox: allow per a nucli ship, sense aplicar-los",
+                fes=_escriu_proposta(ctx.arrel, "allow.md", text), extra="\n".join(falten))
+
+
+PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_allows_ship, pas_hookspath, pas_permisos_worktrees]
 
 
 def avis_worktrees(an) -> str:

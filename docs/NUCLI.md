@@ -224,7 +224,7 @@ Els manuals van abans del pas 3 perquè la persona que confirma que ha revisat l
 **Permisos**
 - `nucli init` afegeix `Bash(nucli finish:*)` a `ask`. Ho fa amb una inserció de text mínima a l'array `ask` (conserva el format del fitxer) i després comprova que el JSON resultant sigui l'original més aquesta regla. Si no pot, plega i t'ho diu. No toca cap altra regla.
 - Al marcador no cal cap `allow`: `nucli ship|port|usage` corren dins del sandbox i `autoAllowBashIfSandboxed` ja els aprova.
-- Als repos **sense** sandbox, `init` et **proposa** (no aplica): `Bash(nucli ship plan)`, `Bash(nucli ship run:*)`, `Bash(nucli ship seal)`, `Bash(nucli port)` i `Bash(nucli usage)`. `ship run` només executa ordres de `nucli.json` de la base, i per això és segur deixar-lo lliure.
+- Als repos **sense** sandbox, `init` et **proposa** (no aplica), a `.nucli/proposta/allow.md`: `Bash(nucli ship plan)`, `Bash(nucli ship run:*)`, `Bash(nucli ship seal)`, `Bash(nucli port)` i `Bash(nucli usage)`. `ship run` només executa ordres del `nucli.json` del checkout principal, i per això és segur deixar-lo lliure. Aquesta proposta no bloqueja res.
 
 ### 5.3 Aïllament natiu
 
