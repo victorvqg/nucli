@@ -1,6 +1,6 @@
 # NUCLI.md — especificació i pla de la v0.1
 
-Última revisió: 2026-09-29 · Versió: **0.1.2** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505) i correccions de la v0.1.2 (n511). La v0.1 es construeix per fases (§8), amb un commit per fase.
+Última revisió: 2026-09-30 · Versió: **0.1.3** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505), correccions de la v0.1.2 (n511) i millores de la v0.1.3 (n607). La v0.1 es construeix per fases (§8), amb un commit per fase.
 
 Canvis de la n478 respecte de l'esborrany:
 1. El forat dels worktrees afecta **qualsevol** worktree, també un `claude --worktree` interactiu. `nucli init` detecta les regles ancorades al checkout principal i proposa (sense aplicar-les) les versions que cobreixen `.claude/worktrees/**`, i que l'`allow` dels scripts relatius només valgui al checkout principal. Mentre no hi siguin, `init` ho avisa i `nucli agent` no arrenca (§5.1, §5.4, §7.1).
@@ -16,6 +16,11 @@ Canvis de la v0.1.1 (n505), correcció de seguretat abans de les proves reals: r
 Canvis de la v0.1.2 (n511), trobats a les proves al marcador:
 1. **Fitxers que el sandbox no deixa llegir.** Al marcador, el `denyRead` de `.env.*` inclou `.env.example`, que és a git, i `nucli ship plan` el donava per esborrat. Dins del sandbox (`nucli ship`), un fitxer no llegible ja no compta ni com a esborrat ni com a canvi: surt com a «no llegible (sandbox)» i no compta ni per al pla ni per a l'arbre net. Fora del sandbox (`nucli finish`), l'arbre net es comprova sense excepcions. El compromís és al §5.2 i la causa, al §7.7.
 2. **`tanca-sessio` no fa mai commit a `main`.** Si la sessió és a `main`, primer crea la branca `docs/sessio-AAAA-MM-DD-HHMM` i fa el commit allà. Acaba sempre recordant que la branca s'ha de pujar amb `nucli finish` (§5.6).
+
+Canvis de la v0.1.3 (n607), trobats en fer servir el nucli al marcador:
+1. **`revisio-config` també per als workflows.** La regla fixa hi afegeix `.github/workflows/**` i `.github/actions/**`: guarden i fan servir secrets, i per tant són configuració de seguretat (§5.2).
+2. **`nucli neteja` també esborra branques.** A més dels worktrees, proposa esborrar les branques locals ja fusionades a la base per història, amb `git branch -d` (mai `-D`), el mateix `[s/N]` i el mateix `--dry-run`. Mai la branca actual ni la base (§5.3).
+3. **Ordre nova, `nucli secret NOM --env ENTORN [--des-de NOM_AL_ENV]`**, per desar a GitHub un valor del `.env` sense ensenyar-lo. Només la llança una persona: sense terminal, o dins de Claude Code, plega abans de llegir res. `nucli init` proposa `Bash(nucli secret:*)` a `deny`, i `nucli agent` la té a `--disallowedTools` (§5.9). La causa és al §7.8.
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
@@ -82,7 +87,8 @@ Comprovat el 29/9/2026 amb el CLI 2.1.284, a `code.claude.com/docs/en/{hooks,wor
 bin/nucli              llançador (python3, només biblioteca estàndard); resol el seu enllaç i importa nucli/
 nucli/                 paquet: comu.py (git, arrels), config.py (nucli.json), patrons.py (sintaxi .gitignore),
                        docs.py i init.py (init), permisos.py (settings.json i worktrees), ship.py, finish.py,
-                       worktree.py (port, neteja), agent.py, ganxos.py (hooks de Claude), githooks.py, us.py
+                       worktree.py (port, neteja), agent.py, secret.py, ganxos.py (hooks de Claude), githooks.py,
+                       us.py
 githooks/              pre-push, commit-msg (els activa core.hooksPath)
 skills/tanca-sessio/   SKILL.md
 plantilles/            CLAUDE.md, AGENTS.md, ESTAT.md, DECISIONS.md, TRAMPES.md, CONVENCIONS.md, ARQUITECTURA.md, nucli.json
@@ -186,7 +192,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - Si el checkout principal no té `nucli.json`, plega i diu «primer executa `nucli init`».
 - Treu la llista de fitxers → regla que els toca → checks, i els checks requerits al final.
 - Els fitxers que no es poden llegir (v0.1.2) surten com a «no llegible (sandbox) → ni esborrat ni canvi: fora del pla». Si els commits de la branca (o l'índex) en canvien un, aquest canvi sí que compta, amb la nota «només compta el canvi dels commits»: git el sap sense llegir el fitxer.
-- **Regla fixa del nucli, no configurable**: si el diff toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore` o `githooks/**`, s'hi afegeix el check manual `revisio-config` («canvi de configuració o de seguretat: revisió humana»). Principi (e).
+- **Regla fixa del nucli, no configurable**: si el diff toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore`, `githooks/**`, `.github/workflows/**` o `.github/actions/**`, s'hi afegeix el check manual `revisio-config` («canvi de configuració o de seguretat: revisió humana»). Principi (e). Els workflows i les accions de GitHub (v0.1.3) guarden i fan servir secrets: són configuració de seguretat. Només compten els de l'arrel, que és on GitHub els llegeix.
 
 **`nucli ship run <check>`**
 - Executa l'ordre del `nucli.json` del checkout principal amb `bash -c` a l'arrel del worktree, amb les variables `NUCLI_*`, i mostra la sortida en directe.
@@ -252,6 +258,7 @@ Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè l
 - `nucli init` afegeix `Bash(nucli finish:*)` a `ask`. Ho fa amb una inserció de text mínima a l'array `ask` (conserva el format del fitxer) i després comprova que el JSON resultant sigui l'original més aquesta regla. Si no pot, plega i t'ho diu. No toca cap altra regla.
 - Al marcador no cal cap `allow`: `nucli ship|port|usage` corren dins del sandbox i `autoAllowBashIfSandboxed` ja els aprova.
 - Als repos **sense** sandbox, `init` et **proposa** (no aplica), a `.nucli/proposta/allow.md`: `Bash(nucli ship plan)`, `Bash(nucli ship run:*)`, `Bash(nucli ship seal)`, `Bash(nucli port)` i `Bash(nucli usage)`. `ship run` només executa ordres del `nucli.json` del checkout principal, i per això és segur deixar-lo lliure. Aquesta proposta no bloqueja res.
+- A **tots** els repos, `init` et **proposa** (no aplica), a `.nucli/proposta/deny.md`, `Bash(nucli secret:*)` a `deny` (v0.1.3, §5.9): `nucli secret` ja plega sola dins de Claude Code, i amb la regla Claude ni tan sols ho intenta. Si ja és al `deny` del `settings.json` o el `settings.local.json` del projecte, o del teu `~/.claude/settings.json` (on val per a tots els repos), no proposa res. Tampoc no bloqueja res.
 
 ### 5.3 Aïllament natiu
 
@@ -266,8 +273,9 @@ Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè l
   2. Salta els que tenen canvis sense commit o estan bloquejats. Mai fa servir `--force`.
   3. Et mostra la llista i et demana confirmació.
   4. Fa `git worktree remove` i, després, `git branch -d` (o `-D` només en el cas *squash* verificat amb `gh`).
+  5. **Branques locals** (v0.1.3): a més dels worktrees, proposa esborrar les branques locals que ja són a `origin/main` per història (`git for-each-ref --merged`) i que no té cap worktree (les dels worktrees les tracta el pas 1). **Mai** la branca actual ni la base. Surten a la mateixa llista (`esborra  branca <nom>`), amb el mateix `[s/N]` i el mateix `--dry-run`, i s'esborren amb `git branch -d`, **mai** `-D`: si git s'hi nega (per exemple, una branca sense upstream que és a `origin/main` però no al teu `main` local), la branca es queda i `neteja` ho diu. Una branca fusionada amb *squash* no és a la base per història i no hi surt.
   
-  Les branques: v0.1 només toca `worktree-*` (vegeu P5).
+  Els worktrees: només `worktree-*` (vegeu P5).
 
 ### 5.4 `nucli agent <id> [--tasca "text"] [--pressupost N] [--torns N]`
 
@@ -291,7 +299,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **`--disallowedTools`**:
      - tota la llista d'`agent.sh`: `git push|merge|checkout|switch|rebase|reset|-C|config|diff --no-index|add -f|add --force`, `curl`, `npx`, `npm`, `pip`, `gh`, `WebFetch` i `WebSearch`;
      - `git commit --no-verify` i `git commit -n`, perquè el `commit-msg` no es pugui saltar;
-     - `nucli finish|neteja|init|agent`;
+     - `nucli finish|neteja|init|agent|secret`;
      - les `prohibides` de `nucli.json`, i per a cada una que executa un script del repo amb camí relatiu, també les variants amb el camí absolut del checkout principal (`/…` i `~/…`) i amb `./`. Si no, quan apliquis la proposta del §7.1 (l'`allow` amb camí absolut), l'agent podria llançar l'script del checkout principal fora del sandbox;
      - totes les regles `allow` de Bash del projecte que apunten al checkout principal: són per a les teves sessions al checkout principal, i l'agent treballa al worktree.
    
@@ -377,6 +385,24 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 
 **Límits**: no toca cap permís i no toca cap repo.
 
+### 5.9 `nucli secret NOM --env ENTORN [--des-de NOM_AL_ENV]` (v0.1.3)
+
+Desa a GitHub (`gh secret set NOM --env ENTORN`) un valor del `.env` **sense ensenyar-lo mai**. `NOM` és el nom del secret a GitHub, i `--des-de`, el de la variable al `.env` si és diferent (per defecte, `NOM`). La causa és al §7.8.
+
+1. **Només una persona.** Si detecta que corre dins de Claude Code (`CLAUDECODE` o `CLAUDE_CODE_ENTRYPOINT` a l'entorn, que Claude Code posa a les ordres que llança) o no hi ha terminal (el Bash de Claude i les ordres `!` no en tenen, §7.2), plega **abans de llegir res**.
+2. Com totes les ordres, només actua en un repo amb `nucli.json`. Comprova que `NOM` sigui un nom de secret vàlid a GitHub (lletres, xifres i `_`, sense començar per xifra ni per `GITHUB_`) i que `gh` sigui al PATH.
+3. **Llegeix el `.env` del checkout principal** (també des d'un worktree, que no en té) com les eines habituals (python-dotenv, docker compose):
+   - `export` opcional i espais al voltant de l'`=`;
+   - sense cometes: treu els espais i el comentari en línia, que comença amb un `#` després d'un espai (`clau # comentari` → `clau`, `ab#cd` → `ab#cd`). Un valor que comença per `#` és ambigu entre eines i compta com a buit: si cal, posa'l entre cometes;
+   - amb cometes simples o dobles: el que hi ha dins, i després només hi pot haver un comentari. A les dobles, `\"`, `\\`, `\n`, `\t` i `\r`; a les simples, `\'` i `\\`. Una cometa que no es tanca a la mateixa línia és un error (no accepta valors de més d'una línia);
+   - si la variable surt més d'un cop, mana l'última, com a les eines habituals, i ho avisa.
+4. **Comprova el valor**: no pot ser buit i només pot tenir caràcters ASCII imprimibles (de l'espai a `~`). Si no, plega amb la línia del `.env` i les posicions dels caràcters dolents (i si són no ASCII o de control), mai els caràcters.
+5. **N'ensenya només la longitud**, i els 10 primers caràcters únicament si comença per un prefix conegut que no és secret: `sb_secret_`, `sb_publishable_` o `eyJ` (la capçalera d'un JWT). Per exemple: `Valor: 41 caràcters · comença per «sb_secret_»`.
+6. Demana confirmació `[s/N]`, amb el no per defecte. Amb un no, no desa res.
+7. Fa `gh secret set NOM --env ENTORN` amb el valor **per stdin** (mai amb `--body`, que el deixaria a la llista de processos) i ensenya la resposta de `gh`.
+
+Mai no imprimeix el valor, ni tan sols als errors. `nucli init` proposa `Bash(nucli secret:*)` a `deny` (§5.2) i `nucli agent` la posa a `--disallowedTools` (§5.4).
+
 ## 6. Què toca el nucli a cada repo (i res més)
 
 | Fitxer | Què hi fa | Qui ho aplica |
@@ -388,7 +414,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 | `.worktreeinclude` | el crea si no existeix | `init` |
 | `.claude/settings.json` | + `Bash(nucli finish:*)` a `ask`; res més | `init` |
 | `.git/config` | `core.hooksPath` | `init` |
-| regles `allow` o de protecció noves, i les dels worktrees (§7.1) | només **proposta**, a `.nucli/proposta/permisos.md` | tu |
+| regles `allow` o de protecció noves, i les dels worktrees (§7.1) | només **proposta**, a `.nucli/proposta/` (`permisos.md`, `allow.md` i `deny.md`) | tu |
 
 ## 7. Trampes detectades abans de començar (el marcador)
 
@@ -418,6 +444,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - `git add -A` se salta els seguits amb el mateix avís, i plega (codi 128) amb un fitxer nou no llegible.
 
    No és que el nucli llegeixi malament la sortida de git: la «D» ja ve de git, i l'avís no surt en aquesta ordre. Com es tracta, al §5.2 («Fitxers no llegibles»). Verificat amb `sandbox-exec` i git 2.50.1, el mateix mecanisme del sandbox de Claude Code al Mac.
+8. **Copiar una clau del `.env` amb `cut` hi enganxa el comentari** (trobat al marcador, v0.1.3). `cut -d= -f2` es queda tot el que hi ha després de l'`=`, també el comentari en línia i els espais. Al marcador, el comentari portava una «é», el secret desat a GitHub no era la clau i el robot va fallar. Per això hi ha `nucli secret` (§5.9): llegeix el `.env` com les eines habituals, comprova que el valor sigui ASCII imprimible i no l'ensenya mai.
 
 ## 8. Pla per fases
 
@@ -463,11 +490,11 @@ Resum de les decisions: **P1 = A**, **P2** segons la recomanació, **P3 = sí** 
   L'alternativa és una ordre `nucli ship ok <check>`, però aleshores un agent també la podria fer. **Recomano** confirmar-los a `finish`.
 - **P5 · `nucli neteja` i branques.** Només `worktree-*`, o totes les fusionades? Al marcador tens `feature/*` i `hotfix/*`.
   
-  **Recomano** només `worktree-*` a la v0.1.
+  **Recomano** només `worktree-*` a la v0.1. *v0.1.3*: els worktrees continuen sent només `worktree-*`, i ara `neteja` també proposa esborrar les branques locals que ja són a la base per història, amb `git branch -d` i mai la branca actual ni la base (§5.3).
 - **P6 · Mesura dels `/skill` escrits a mà.** Afegir també un hook `UserPromptExpansion` (camp `command_name`), perquè `PostToolUse` només veu les skills que obre Claude.
   
   **Recomano sí**: és la mateixa línia a `us.jsonl` amb `"via": "usuari"`.
-- **P7 · `revisio-config`.** És el check manual automàtic quan una branca toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore` o `githooks/**`. No me l'has demanat.
+- **P7 · `revisio-config`.** És el check manual automàtic quan una branca toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore`, `githooks/**` o, des de la v0.1.3, `.github/workflows/**` i `.github/actions/**`. No me l'has demanat.
   
   **Recomano mantenir-lo**: és el principi (e) aplicat a la porta.
 - **P8 · On viu el nucli.** El repo a `~/PROJECTS/nucli` a cada Mac, i `core.hooksPath` apunta al camí real d'aquest clon. Si el mous, `nucli init` es torna a executar i ho corregeix.

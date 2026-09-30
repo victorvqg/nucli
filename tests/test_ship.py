@@ -85,10 +85,20 @@ def test_migracions_i_per_defecte():
 
 
 @pytest.mark.parametrize("cami", ["nucli.json", ".claude/settings.json", ".mcp.json", ".worktreeinclude",
-                                  ".gitignore", "web/.gitignore", "githooks/pre-push", "sub/.claude/settings.json"])
+                                  ".gitignore", "web/.gitignore", "githooks/pre-push", "sub/.claude/settings.json",
+                                  ".github/workflows/ci.yml", ".github/workflows/sub/deploy.yaml",
+                                  ".github/actions/setup/action.yml"])
 def test_configuracio_demana_revisio(cami):
     per_fitxer, req = classifica_camins([cami])
     assert "revisio-config" in per_fitxer[cami] and req[-1] == "revisio-config"
+
+
+@pytest.mark.parametrize("cami", [".github/ISSUE_TEMPLATE/error.md", ".github/dependabot.yml",
+                                  "docs/.github/workflows/ci.yml"])
+def test_la_resta_de_github_no_demana_revisio(cami):
+    """v0.1.3: només els workflows i les accions de l'arrel (on GitHub els llegeix), que guarden secrets."""
+    per_fitxer, _ = classifica_camins([cami])
+    assert "revisio-config" not in per_fitxer[cami]
 
 
 def test_renomenats_esborrats_i_nous(repo, wt):

@@ -86,7 +86,7 @@ def test_cami_bo(repo, entorn_agent):
     assert permeses == ["Read", "Edit", "Write", "Grep", "Glob", "Bash(git:*)", "Bash(nucli ship plan)",
                         "Bash(nucli ship run:*)", "Bash(nucli ship seal)", "Bash(nucli port)"]
     for p in ("Bash(git push:*)", "Bash(git -C:*)", "Bash(gh:*)", "WebFetch", "Bash(nucli finish:*)",
-              "Bash(nucli agent:*)", "Bash(supabase:*)", "mcp__supabase__*", "Bash(bash scripts/llanca-sync.sh)",
+              "Bash(nucli agent:*)", "Bash(nucli secret:*)", "Bash(supabase:*)", "mcp__supabase__*", "Bash(bash scripts/llanca-sync.sh)",
               f"Bash(bash {repo}/scripts/llanca-sync.sh)", "Bash(bash ./scripts/llanca-sync.sh)"):
         assert p in prohibides, p
 

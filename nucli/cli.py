@@ -32,6 +32,7 @@ _ORDRES = {
     "port": ("worktree", "ordre_port"),
     "neteja": ("worktree", "ordre_neteja"),
     "agent": ("agent", "ordre"),
+    "secret": ("secret", "ordre"),
     "usage": ("us", "ordre"),
     "hook": ("ganxos", "ordre"),
     "githook": ("githooks", "ordre"),
@@ -66,7 +67,8 @@ def construeix_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("port", help="port estable d'aquest worktree (4100–4999)")
     s.add_argument("--comprova", action="store_true", help="avisa si el port està ocupat")
 
-    s = sub.add_parser("neteja", help="(només tu) treu els worktrees fusionats")
+    s = sub.add_parser("neteja", help="(només tu) treu els worktrees fusionats i esborra les branques locals ja "
+                       "fusionades a la base (git branch -d)")
     s.add_argument("--dry-run", action="store_true", help="només diu què trauria")
 
     s = sub.add_parser("agent", help="llança un agent headless en un worktree nou")
@@ -74,6 +76,11 @@ def construeix_parser() -> argparse.ArgumentParser:
     s.add_argument("--tasca", help="text de la tasca (si no, el bloc <id> del fitxer de tasques)")
     s.add_argument("--pressupost", type=float, help="màxim en dòlars (per defecte, el de nucli.json)")
     s.add_argument("--torns", type=int, help="màxim de torns (per defecte, el de nucli.json)")
+
+    s = sub.add_parser("secret", help="(només tu, al terminal) desa a GitHub un valor del .env sense ensenyar-lo")
+    s.add_argument("nom", metavar="NOM", help="nom del secret a GitHub")
+    s.add_argument("--env", required=True, dest="entorn", metavar="ENTORN", help="entorn de GitHub (gh secret set --env)")
+    s.add_argument("--des-de", metavar="NOM_AL_ENV", help="nom de la variable al .env (per defecte, NOM)")
 
     s = sub.add_parser("usage", help="ús de les skills per skill i per repo, i les que no s'han obert")
     s.add_argument("--dies", type=int, default=30, help="finestra en dies (per defecte, 30)")

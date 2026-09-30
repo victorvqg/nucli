@@ -289,19 +289,30 @@ ALLOWS_SHIP = ["Bash(nucli ship plan)", "Bash(nucli ship run:*)", "Bash(nucli sh
                "Bash(nucli usage)"]
 
 
-def pas_allows_ship(ctx: Context) -> None:
-    """Sense sandbox, Claude et preguntaria cada `nucli ship`: te'n proposa els allow (no els aplica mai)."""
+def _settings(ctx: Context) -> list:
+    """Les dades del settings.json i el settings.local.json del projecte i del teu ~/.claude/settings.json."""
     fonts = [ctx.arrel / SETTINGS, ctx.arrel / ".claude/settings.local.json", Path.home() / ".claude/settings.json"]
     dades = []
     for f in fonts:
         try:
-            dades.append(json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {})
+            d = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
         except ValueError:
-            dades.append({})
+            d = {}
+        dades.append(d if isinstance(d, dict) else {})
+    return dades
+
+
+def _regles(dades: list, llista: str) -> set:
+    return {r for d in dades for r in (((d.get("permissions") or {}).get(llista)) or [])}
+
+
+def pas_allows_ship(ctx: Context) -> None:
+    """Sense sandbox, Claude et preguntaria cada `nucli ship`: te'n proposa els allow (no els aplica mai)."""
+    dades = _settings(ctx)
     if any(isinstance(d.get("sandbox"), dict) and d["sandbox"].get("enabled") for d in dades):
         ctx.afegeix("ja hi és", "allow de nucli ship", "amb el sandbox actiu, autoAllowBashIfSandboxed ja els aprova")
         return
-    tenim = {r for d in dades for r in ((d.get("permissions") or {}).get("allow") or [])}
+    tenim = _regles(dades, "allow")
     falten = [r for r in ALLOWS_SHIP if r not in tenim]
     if not falten:
         ctx.afegeix("ja hi és", "allow de nucli ship", ", ".join(ALLOWS_SHIP))
@@ -320,7 +331,31 @@ def pas_allows_ship(ctx: Context) -> None:
                 fes=_escriu_proposta(ctx.arrel, "allow.md", text), extra="\n".join(falten))
 
 
-PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_allows_ship, pas_hookspath, pas_permisos_worktrees]
+DENY_SECRET = "Bash(nucli secret:*)"
+
+
+def pas_deny_secret(ctx: Context) -> None:
+    """`nucli secret` només la llança una persona: te'n proposa la regla deny perquè Claude ni ho intenti (v0.1.3)."""
+    if {DENY_SECRET, "Bash(nucli secret *)"} & _regles(_settings(ctx), "deny"):
+        ctx.afegeix("ja hi és", "deny de nucli secret", DENY_SECRET)
+        return
+    text = ("# Deny per a nucli secret (proposta de `nucli init`, no aplicada)\n\n"
+            "`nucli secret` desa a GitHub un valor del `.env` i només la pot llançar una persona, al terminal. Ja plega "
+            "sola si detecta que corre dins de Claude Code; amb aquesta regla, Claude ni tan sols ho intenta. Afegeix "
+            "això a `permissions.deny` de `.claude/settings.json` (o del teu `~/.claude/settings.json`, i valdrà per a "
+            "tots els repos):\n\n"
+            f"    \"{DENY_SECRET}\",\n")
+    dest = ctx.arrel / ".nucli" / DIR_PROPOSTA / "deny.md"
+    rel = dest.relative_to(ctx.arrel).as_posix()
+    if dest.is_file() and dest.read_text(encoding="utf-8") == text:
+        ctx.afegeix("ja hi és", rel, "proposta de deny per a nucli secret")
+        return
+    ctx.afegeix("proposa", rel, f"{DENY_SECRET} a deny, sense aplicar-la",
+                fes=_escriu_proposta(ctx.arrel, "deny.md", text))
+
+
+PASSOS = [pas_gitignore, pas_worktreeinclude, pas_ask_finish, pas_allows_ship, pas_deny_secret, pas_hookspath,
+          pas_permisos_worktrees]
 
 
 def avis_worktrees(an) -> str:

@@ -44,7 +44,8 @@ def entorn(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(gitconfig))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     for var in list(os.environ):
-        if var.startswith("NUCLI_") or var in ("CLAUDECODE", "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+        if var.startswith("NUCLI_") or var in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "GIT_DIR", "GIT_WORK_TREE",
+                                               "GIT_INDEX_FILE"):
             monkeypatch.delenv(var, raising=False)
     return home
 

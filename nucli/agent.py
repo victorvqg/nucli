@@ -28,6 +28,7 @@ EINES_PROHIBIDES = [
     "Bash(git add --force:*)", "Bash(git commit --no-verify:*)", "Bash(git commit -n:*)",
     "Bash(curl:*)", "Bash(npx:*)", "Bash(npm:*)", "Bash(pip:*)", "Bash(gh:*)", "WebFetch", "WebSearch",
     "Bash(nucli finish:*)", "Bash(nucli neteja:*)", "Bash(nucli init:*)", "Bash(nucli agent:*)",
+    "Bash(nucli secret:*)",
 ]
 
 

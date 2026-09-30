@@ -1,4 +1,8 @@
-"""Aïllament natiu: `nucli port` i `nucli neteja`. Els worktrees els crea Claude Code (`claude --worktree`)."""
+"""Aïllament natiu: `nucli port` i `nucli neteja`. Els worktrees els crea Claude Code (`claude --worktree`).
+
+`nucli neteja` treu els worktrees fusionats i, des de la v0.1.3, també esborra les branques locals que ja són a la
+base per història, sempre amb `git branch -d` (mai -D), i mai la branca actual ni la base.
+"""
 from __future__ import annotations
 
 import json
@@ -66,6 +70,18 @@ def fusionat_per_gh(branca: str, head: str, cwd: Path):
     return None
 
 
+def branques_fusionades(repo: Repo, base: str, excepte: set) -> list:
+    """Les branques locals que ja són a `base` per història i que no té cap worktree (les dels worktrees les
+    tracta la neteja de worktrees). Les d'`excepte` (la branca actual i la base) no hi surten mai."""
+    out = []
+    sortida = repo.git("for-each-ref", f"--merged={base}", "--format=%(refname:lstrip=2) %(worktreepath)", "refs/heads/")
+    for linia in sortida.splitlines():
+        branca, _, worktree = linia.partition(" ")
+        if branca and not worktree and branca not in excepte:
+            out.append(branca)
+    return out
+
+
 def ordre_neteja(args) -> int:
     repo = troba_repo()
     if repo.es_worktree:
@@ -93,19 +109,28 @@ def ordre_neteja(args) -> int:
             dins.append((wt, "-D", f"PR #{pr} fusionat amb aquest mateix HEAD (squash, verificat amb gh)"))
         else:
             fora.append(f"{nom}: no està fusionat")
+    branques = branques_fusionades(repo, base, {repo.branca(), repo.config()["branca_base"]})
     print(f"nucli neteja · {repo.arrel} · base {base}" + ("  (--dry-run)" if args.dry_run else ""))
     for wt, _, motiu in dins:
         print(f"  treu     {wt.cami.name} ({wt.branca}) · {motiu}")
     for f in fora:
         print(f"  es queda {f}")
-    if not dins:
+    for b in branques:
+        print(f"  esborra  branca {b} · ja és a {base} (història)")
+    if not dins and not branques:
         print("Res a netejar.")
         return 0
     if args.dry_run:
         return 0
     if not sys.stdin.isatty():
         raise Plega("cal un terminal per confirmar la neteja")
-    if input(f"Trec aquests {len(dins)} worktree(s) i les seves branques? [s/N] ").strip().lower() not in ("s", "si", "sí"):
+    que = []
+    if dins:
+        que.append(f"trec {len(dins)} worktree(s) i les seves branques")
+    if branques:
+        que.append(f"esborro {len(branques)} branca(es) local(s) fusionada(es) amb git branch -d")
+    pregunta = ", i ".join(que)
+    if input(f"{pregunta[0].upper()}{pregunta[1:]}? [s/N] ").strip().lower() not in ("s", "si", "sí"):
         print("No he tocat res.")
         return 0
     for wt, opcio, _ in dins:
@@ -116,4 +141,10 @@ def ordre_neteja(args) -> int:
         r = subprocess.run(["git", "branch", opcio, wt.branca], cwd=str(repo.arrel), capture_output=True, text=True)
         estat = "✓" if r.returncode == 0 else f"worktree tret, però la branca no: {r.stderr.strip()}"
         print(f"  {estat} {wt.cami.name} ({wt.branca})")
+    for b in branques:
+        r = subprocess.run(["git", "branch", "-d", b], cwd=str(repo.arrel), capture_output=True, text=True)
+        if r.returncode == 0:
+            print(f"  ✓ branca {b}")
+        else:
+            print(f"  ✗ branca {b}: {r.stderr.strip()}", file=sys.stderr)
     return 0

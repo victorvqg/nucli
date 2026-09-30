@@ -22,7 +22,9 @@ from .config import CHECK_REVISIO_CONFIG, TEXT_REVISIO_CONFIG
 from .patrons import algun, coincideix
 
 # Regla fixa del nucli (principi e): tocar configuració o seguretat demana revisió humana. No és configurable.
-PATRONS_CONFIG = ["/nucli.json", ".claude/", ".mcp.json", ".worktreeinclude", ".gitignore", "githooks/"]
+# Els workflows i les accions de GitHub també: guarden i fan servir secrets (v0.1.3).
+PATRONS_CONFIG = ["/nucli.json", ".claude/", ".mcp.json", ".worktreeinclude", ".gitignore", "githooks/",
+                  ".github/workflows/**", ".github/actions/**"]
 MAX_SORTIDA = 20 * 1024
 NO_LLEGIBLE = "no llegible (sandbox)"
 

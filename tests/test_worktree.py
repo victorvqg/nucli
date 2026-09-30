@@ -221,6 +221,17 @@ def escenari(fes_repo, tmp_path, monkeypatch):
     escriu(e, "e.txt", "e\n")
     commit(e, "feat: e")
     nou_wt(arrel, "altra", branca="feature/x")
+    # branques locals sense worktree: una ja fusionada a origin/main per història i una de viva
+    git(arrel, "switch", "-q", "-c", "feature/fusionada")
+    escriu(arrel, "f.txt", "f\n")
+    commit(arrel, "feat: f")
+    git(arrel, "switch", "-q", "main")
+    git(arrel, "merge", "-q", "--ff-only", "feature/fusionada")
+    git(arrel, "push", "-q", "origin", "main")
+    git(arrel, "switch", "-q", "-c", "feature/viva")
+    escriu(arrel, "v.txt", "v\n")
+    commit(arrel, "feat: v")
+    git(arrel, "switch", "-q", "main")
     bin_fals = tmp_path / "bin"
     bin_fals.mkdir()
     (bin_fals / "gh").write_text(
@@ -241,7 +252,11 @@ def test_neteja_dry_run(escenari):
     assert "es queda bloquejat: bloquejat" in r.stdout
     assert "es queda viu: no està fusionat" in r.stdout
     assert "es queda altra: la branca «feature/x» no és worktree-*" in r.stdout
+    assert "esborra  branca feature/fusionada · ja és a origin/main (història)" in r.stdout
+    esborra = [l for l in r.stdout.splitlines() if l.startswith("  esborra")]
+    assert len(esborra) == 1  # ni la viva, ni main, ni les que té un worktree (feature/x, worktree-*)
     assert (escenari / ".claude/worktrees/historia").is_dir()
+    assert "feature/fusionada" in git(escenari, "branch", "--list")
 
 
 def test_neteja_sense_terminal_no_toca_res(escenari):
@@ -264,6 +279,60 @@ def test_neteja_amb_confirmacio(escenari):
     assert "worktree-historia" not in branques and "worktree-squash" not in branques
     for queda in ("brut", "bloquejat", "viu", "altra"):
         assert (escenari / ".claude/worktrees" / queda).is_dir()
+    assert "  ✓ branca feature/fusionada" in r.stdout
+    assert "feature/fusionada" not in branques
+    assert "feature/viva" in branques and "main" in branques and "feature/x" in branques
+
+
+def amb_terminal(cwd, resposta):
+    mestre, esclau = pty.openpty()
+    os.write(mestre, resposta)
+    try:
+        return subprocess.run([sys.executable, str(BIN), "neteja"], cwd=str(cwd), stdin=esclau,
+                              capture_output=True, text=True)
+    finally:
+        os.close(esclau)
+        os.close(mestre)
+
+
+def test_neteja_branques_mai_l_actual_ni_la_base_i_mai_amb_força(fes_repo):
+    """v0.1.3: git branch -d i prou. Si git s'hi nega, la branca es queda."""
+    arrel = fes_repo()
+    # feature/remota és a origin/main, però no al main local ni a HEAD i no té upstream: git branch -d s'hi nega
+    git(arrel, "switch", "-q", "-c", "feature/remota")
+    escriu(arrel, "r.txt", "r\n")
+    commit(arrel, "feat: r")
+    git(arrel, "push", "-q", "origin", "feature/remota:main")
+    git(arrel, "switch", "-q", "main")
+    # la branca actual (fusionada) i main (la base, ara sense cap worktree) no surten mai
+    git(arrel, "switch", "-q", "-c", "feature/actual")
+    r = nucli("neteja", "--dry-run", cwd=arrel)
+    assert r.returncode == 0, r.stderr
+    esborra = [l for l in r.stdout.splitlines() if l.startswith("  esborra")]
+    assert esborra == ["  esborra  branca feature/remota · ja és a origin/main (història)"]
+    r = amb_terminal(arrel, b"s\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "✗ branca feature/remota" in r.stderr
+    assert set(git(arrel, "branch", "--format=%(refname:short)").split()) == {"main", "feature/actual", "feature/remota"}
+
+
+def test_neteja_branques_amb_un_no_no_toca_res(escenari):
+    r = amb_terminal(escenari, b"n\n")
+    assert r.returncode == 0 and "No he tocat res." in r.stdout
+    assert "esborro 1 branca(es) local(s) fusionada(es) amb git branch -d? [s/N]" in r.stdout
+    assert "feature/fusionada" in git(escenari, "branch", "--list")
+    assert (escenari / ".claude/worktrees/historia").is_dir()
+
+
+def test_neteja_sense_res_fusionat(fes_repo):
+    arrel = fes_repo()
+    git(arrel, "branch", "feature/viva")
+    git(arrel, "switch", "-q", "feature/viva")
+    escriu(arrel, "v.txt", "v\n")
+    commit(arrel, "feat: v")
+    git(arrel, "switch", "-q", "main")
+    r = nucli("neteja", cwd=arrel)
+    assert r.returncode == 0 and "Res a netejar." in r.stdout and "esborra" not in r.stdout
 
 
 def test_neteja_des_d_un_worktree_plega(escenari):
