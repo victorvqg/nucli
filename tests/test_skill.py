@@ -81,3 +81,40 @@ def test_els_passos_a_main_deixen_main_intacte_i_passen_pels_hooks(fes_repo, tmp
     assert a_main.returncode != 0 and "no es pot pujar directament a main" in a_main.stderr  # el pre-push hi és
     r = sh("git", "push", "origin", branca, cwd=arrel, check=False)
     assert r.returncode == 0, r.stderr
+
+
+# ---------- v0.1.4: les tasques són issues ----------
+
+def test_apunta_a_issues_i_no_crea_mai_cap_mt():
+    _, cos = frontmatter()
+    for clau in ("`#N`", "`gh issue list --label tasca --state open --json number,title,labels`", "que només llegeix",
+                 "no t'inventis cap número", "`tasques.font` és `github-issues`", "és historial",
+                 "**Una tasca nova no és mai un id del fitxer de tasques**", "no creïs cap `mtX`, ni tampoc cap issue",
+                 "`.github/ISSUE_TEMPLATE/`", "perquè l'obri l'usuari", "tu no l'obres"):
+        assert clau in cos, clau
+    assert "p. ex. `mt`, `mp`" not in cos  # les mt ja no són un id que la skill pugui crear
+    seccio5 = cos[cos.index("## 5. Branca i commit"):cos.index("## 6.")]
+    for clau in ("`issue/12-…`", "`worktree-issue-12`", "` (#12)`", "**ha d'acabar**", "`tasques.branca`", "` (mt12)`"):
+        assert clau in seccio5, clau
+
+
+def test_a_una_branca_d_issue_el_commit_acaba_en_numero(fes_repo, tmp_path, monkeypatch):
+    """El missatge de la skill a `issue/12-…`: sense « (#12)» el commit-msg el rebutja; amb, passa."""
+    _, cos = frontmatter()
+    missatge = re.search(r"`(docs\(sessio\): tancament del AAAA-MM-DD)`", cos).group(1).replace("AAAA-MM-DD", "2026-10-01")
+    d = tmp_path / "bin-py"
+    d.mkdir()
+    (d / "python3").symlink_to(sys.executable)
+    monkeypatch.setenv("PATH", f"{d}:{os.environ['PATH']}")
+    arrel = fes_repo(config=dict(CONFIG_MINIMA, tasques={"font": "github-issues", "branca": "issue/",
+                                                         "fitxer": "TASQUES.md", "prefix": "mt"}))
+    git(arrel, "config", "core.hooksPath", str(ARREL_NUCLI / "githooks"))
+    git(arrel, "switch", "-q", "-c", "issue/12-arregla-el-total")
+    escriu(arrel, "docs/ESTAT.md", "Última actualització: 2026-10-01\n\n## Ara\n\n## Següent\n- #13\n\n## Bloquejat\n")
+    git(arrel, "add", "docs/ESTAT.md")
+    r = sh("git", "commit", "-q", "-m", missatge, cwd=arrel, check=False)
+    assert r.returncode != 0 and "l'assumpte ha d'acabar en « (#12)»" in r.stderr
+    r = sh("git", "commit", "-q", "-F", "-", cwd=arrel, check=False, entrada=f"{missatge}\n\nIssue #12.\n")
+    assert r.returncode != 0  # al cos no n'hi ha prou
+    r = sh("git", "commit", "-q", "-m", f"{missatge} (#12)", cwd=arrel, check=False)
+    assert r.returncode == 0, r.stderr

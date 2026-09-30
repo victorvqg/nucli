@@ -253,6 +253,9 @@ def test_finish_cami_bo(repo, wt, gh_fals):
     assert "app.py" in r.stdout and "1 file changed" in r.stdout  # el diff --stat contra la base
     assert "Executo fora del sandbox, amb el codi d'aquesta branca: lint, test. Has llegit el diff? [s/N]" in r.stdout
     assert "No he fet cap merge" in r.stdout
+    assert "Closes" not in cos  # worktree-feina no és una branca d'issue
+    md = nucli("rebut", "markdown", cwd=wt)  # v0.1.4: el mateix bloc, a partir del rebut segellat
+    assert md.returncode == 0 and md.stdout == cos
 
 
 def test_finish_amb_pr_obert_hi_comenta(repo, wt, gh_fals):
@@ -475,3 +478,167 @@ def test_init_amb_sandbox_no_proposa_allow(fes_repo):
     r = nucli("init", cwd=arrel)
     assert "ja hi és  allow de nucli ship · amb el sandbox actiu" in r.stdout
     assert not (arrel / ".nucli/proposta/allow.md").exists()
+
+
+# ---------- v0.1.4: finish amb Closes #N ----------
+
+def wt_issue(repo, branca, nom="issue"):
+    cami = repo / ".claude" / "worktrees" / nom
+    git(repo, "worktree", "add", "-q", "-b", branca, str(cami), "origin/main")
+    return cami
+
+
+@pytest.mark.parametrize("branca", ["issue/12-arregla-el-total", "worktree-issue-12"])
+def test_finish_d_una_branca_d_issue_posa_closes(repo, gh_fals, branca):
+    cami = wt_issue(repo, branca)
+    fes_feina(cami)
+    passa(cami, "lint", "test")
+    r = finish_amb_terminal(cami, "s\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    cos = gh_fals["cos"].read_text()
+    assert cos.startswith("Closes #12\n\n## Rebut del nucli\n")
+    assert f"pr create --base main --head {branca} --title feat(app): canvi" in gh_fals["registre"].read_text()
+    assert cos == "Closes #12\n\n" + nucli("rebut", "markdown", cwd=cami).stdout
+
+
+def test_finish_d_issue_amb_pr_obert_comenta_sense_closes(repo, gh_fals):
+    gh_fals["llista"].write_text('[{"number": 7, "url": "https://github.com/prova/repo/pull/7"}]')
+    cami = wt_issue(repo, "issue/12-arregla-el-total")
+    fes_feina(cami)
+    passa(cami, "lint", "test")
+    r = finish_amb_terminal(cami, "s\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "pr comment 7 --body-file -" in gh_fals["registre"].read_text()
+    cos = gh_fals["cos"].read_text()
+    assert cos.startswith("## Rebut del nucli") and "Closes" not in cos
+
+
+def test_finish_amb_el_prefix_de_nucli_json(repo, gh_fals):
+    cfg = json.loads((repo / "nucli.json").read_text())
+    cfg["tasques"] = {"font": "github-issues", "branca": "tasca/", "fitxer": "TASQUES.md", "prefix": "mt"}
+    (repo / "nucli.json").write_text(json.dumps(cfg))
+    cami = wt_issue(repo, "tasca/5-mode-fosc")
+    fes_feina(cami)
+    passa(cami, "lint", "test")
+    assert finish_amb_terminal(cami, "s\n").returncode == 0
+    assert gh_fals["cos"].read_text().startswith("Closes #5\n\n")
+
+
+# ---------- v0.1.4: ship plan --json ----------
+
+def pla_json(wt):
+    r = nucli("ship", "plan", "--json", cwd=wt)
+    assert r.returncode == 0, r.stderr
+    return json.loads(r.stdout)
+
+
+def test_plan_json(repo, wt):
+    escriu(wt, "web/index.html", "<p>2\n")
+    commit(wt, "feat(web): canvi")
+    escriu(wt, "app.py", "x = 3\n")  # també els canvis sense commit, com el text
+    p = pla_json(wt)
+    assert p["nucli"] == "0.1.4" and p["branca"] == "worktree-feina" and p["base"] == "origin/main"
+    assert p["merge_base"] == git(wt, "merge-base", "origin/main", "HEAD")
+    assert p["requerits"] == ["lint", "test", "visual"]
+    assert p["automatics"] == [{"check": "lint", "ordre": "echo lint-ok", "fora_sandbox": False},
+                               {"check": "test", "ordre": CONFIG["checks"]["test"]["ordre"], "fora_sandbox": False}]
+    assert p["manuals"] == [{"check": "visual", "text": "Revisió visual al mòbil"}]
+    fitxers = {f["cami"]: f for f in p["fitxers"]}
+    assert fitxers["web/index.html"]["checks"] == ["lint", "visual"] and fitxers["web/index.html"]["regles"] == [3]
+    assert fitxers["app.py"]["checks"] == ["lint", "test"] and fitxers["app.py"]["config"] is False
+    assert p["no_llegibles"] == []
+
+
+def test_plan_json_amb_config_i_fora_sandbox(repo, wt):
+    cfg = json.loads((repo / "nucli.json").read_text())
+    cfg["checks"]["smoke"] = {"ordre": "echo smoke-ok", "fora_sandbox": True}
+    cfg["regles"][2]["checks"] = ["lint", "smoke", "visual"]
+    (repo / "nucli.json").write_text(json.dumps(cfg))
+    escriu(wt, "web/index.html", "<p>2\n")
+    escriu(wt, ".github/workflows/ci.yml", "on: push\n")
+    p = pla_json(wt)
+    assert p["requerits"] == ["lint", "test", "visual", "smoke", "revisio-config"]  # el workflow, per defecte
+    assert {"check": "smoke", "ordre": "echo smoke-ok", "fora_sandbox": True} in p["automatics"]
+    assert p["manuals"][-1] == {"check": "revisio-config", "text": "Canvi de configuració o de seguretat: revisió humana"}
+    assert {f["cami"]: f["config"] for f in p["fitxers"]}[".github/workflows/ci.yml"] is True
+
+
+def test_plan_json_sense_canvis(wt):
+    p = pla_json(wt)
+    assert p["requerits"] == [] and p["automatics"] == [] and p["manuals"] == [] and p["fitxers"] == []
+
+
+# ---------- v0.1.4: rebut markdown ----------
+
+def test_rebut_markdown_de_la_ci(wt):
+    fes_feina(wt)
+    passa(wt, "lint", "test")
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 0, r.stderr
+    head = git(wt, "rev-parse", "HEAD")
+    assert r.stdout.startswith(f"## Rebut del nucli\n\nChecks executats per la CI contra HEAD `{head[:12]}`:\n")
+    assert "| lint | 0 |" in r.stdout and "| test | 0 |" in r.stdout
+    assert r.stdout.rstrip().splitlines()[-1] == f"HEAD `{head}` · nucli 0.1.4"
+    assert "nucli finish" not in r.stdout and "pendents" not in r.stdout
+
+
+def test_el_flux_de_la_ci(repo, wt):
+    """plan --json → run de cada automàtic (també els fora_sandbox: la CI no té sandbox) → seal → markdown."""
+    cfg = json.loads((repo / "nucli.json").read_text())
+    cfg["checks"]["smoke"] = {"ordre": "echo smoke-ok", "fora_sandbox": True}
+    cfg["regles"][2]["checks"] = ["lint", "smoke", "visual"]
+    (repo / "nucli.json").write_text(json.dumps(cfg))
+    fes_feina(wt, "web/index.html", "<p>2\n")
+    for c in pla_json(wt)["automatics"]:
+        assert nucli("ship", "run", c["check"], cwd=wt).returncode == 0
+    assert nucli("ship", "seal", cwd=wt).returncode == 0
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert "| lint | 0 |" in r.stdout and "| smoke | 0 |" in r.stdout
+    assert "Checks manuals pendents (revisió humana): visual" in r.stdout
+    assert "fora del sandbox pendents" not in r.stdout
+
+
+def test_rebut_markdown_diu_el_que_no_s_ha_executat(repo, wt):
+    cfg = json.loads((repo / "nucli.json").read_text())
+    cfg["checks"]["smoke"] = {"ordre": "echo smoke-ok", "fora_sandbox": True}
+    cfg["regles"][2]["checks"] = ["lint", "smoke", "visual"]
+    (repo / "nucli.json").write_text(json.dumps(cfg))
+    fes_feina(wt, "web/index.html", "<p>2\n")
+    passa(wt, "lint")  # el smoke (fora del sandbox) queda pendent al segell
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 0, r.stderr
+    assert "| lint | 0 |" in r.stdout and "| smoke |" not in r.stdout
+    assert "Checks manuals pendents (revisió humana): visual" in r.stdout
+    assert "Checks fora del sandbox pendents (sense executar): smoke" in r.stdout
+
+
+def test_rebut_markdown_sense_finish_demana_l_origen(wt):
+    fes_feina(wt)
+    passa(wt, "lint", "test")
+    r = nucli("rebut", "markdown", cwd=wt)
+    assert r.returncode == 1 and "no ha passat per «nucli finish»" in r.stderr and "--origen ci" in r.stderr
+
+
+def test_rebut_markdown_sense_rebut_o_sense_segell(wt):
+    fes_feina(wt)
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 1 and "no hi ha rebut" in r.stderr
+    nucli("ship", "run", "lint", cwd=wt)
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 1 and "no està segellat" in r.stderr
+
+
+def test_rebut_markdown_amb_sha_alterat_o_head_canviat(wt):
+    fes_feina(wt)
+    passa(wt, "lint", "test")
+    fes_feina(wt, "docs/b.md", "b\n")
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 1 and "no és el del segell" in r.stderr
+    passa(wt, "lint", "test")
+    p = wt / ".nucli/rebuts/worktree-feina.json"
+    dades = json.loads(p.read_text())
+    dades["execucions"][-1]["codi"] = 0
+    dades["execucions"][-1]["durada_s"] = 999
+    p.write_text(json.dumps(dades))
+    r = nucli("rebut", "markdown", "--origen", "ci", cwd=wt)
+    assert r.returncode == 1 and "sha256" in r.stderr

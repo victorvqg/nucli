@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from .comu import git, repo_amb_nucli
-from .config import prefixos_tasques
+from .config import issue_de_branca, prefixos_tasques
 from .ship import ara
 
 ZERO = "0" * 40
@@ -95,7 +95,12 @@ def assumpte(text: str) -> str:
     return ""
 
 
-def id_de_branca(branca: str, prefixos: list):
+def id_de_branca(branca: str, prefixos: list, cfg: dict = None):
+    """L'id de la tasca de la branca: `#N` si és d'un issue (`issue/N-…`, `worktree-issue-N`), i si no, el primer
+    `<prefix><n>` (`worktree-mt12`, `mt/mt12` → `mt12`). L'issue va primer: `issue/12-arregla-mt3` → `#12`."""
+    n = issue_de_branca(branca, cfg or {})
+    if n is not None:
+        return f"#{n}"
     for p in prefixos:
         m = re.search(rf"(?:^|[/-])({re.escape(p)}\d+)(?:$|[/-])", branca)
         if m:
@@ -107,6 +112,7 @@ def paraules_estrangeres(descripcio: str):
     """(estrangeres, catalanes, total) d'una descripció, sense els trossos entre `."""
     net = re.sub(r"`[^`]*`", " ", descripcio)
     net = re.sub(r"\([a-z]+\d+\)", " ", net)
+    net = re.sub(r"\(#\d+\)", " ", net)
     paraules = [p for p in re.split(r"[^\wàèéíïòóúüç·ñ]+", net.lower()) if p and not p.isdigit()]
     estrangeres = [p for p in paraules if p in ANGLES or p in CASTELLA]
     catalanes = [p for p in paraules if p in CATALA]
@@ -125,8 +131,12 @@ def commit_msg(repo, cami_missatge: str) -> int:
     if not m:
         errors.append(f"l'assumpte ha de ser «tipus(àmbit): què», amb tipus entre: {', '.join(tipus)}")
     branca = git("rev-parse", "--abbrev-ref", "HEAD", cwd=os.getcwd(), check=False)
-    id_ = id_de_branca(branca, prefixos_tasques(cfg) or []) if branca and branca != "HEAD" else None
-    if id_ and not re.search(rf"(?<![A-Za-z0-9]){re.escape(id_)}(?![0-9])", text):
+    id_ = id_de_branca(branca, prefixos_tasques(cfg) or [], cfg) if branca and branca != "HEAD" else None
+    if id_ and id_.startswith("#"):
+        # d'un issue, només val al final de l'assumpte: un «Closes #3» al cos no pot passar per l'id
+        if not subj.endswith(f" ({id_})"):
+            errors.append(f"la branca {branca} és de l'issue {id_}: l'assumpte ha d'acabar en « ({id_})»")
+    elif id_ and not re.search(rf"(?<![A-Za-z0-9]){re.escape(id_)}(?![0-9])", text):
         errors.append(f"la branca {branca} és de la tasca {id_}: el missatge l'ha de contenir, p. ex. «… ({id_})»")
     if m and cfg.get("idioma", "ca") == "ca":
         estrangeres, catalanes, total = paraules_estrangeres(m.group(3))

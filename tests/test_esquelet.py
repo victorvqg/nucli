@@ -12,7 +12,7 @@ def test_help_en_catala(tmp_path):
     r = nucli("--help", cwd=tmp_path)
     assert r.returncode == 0
     assert "ús: nucli" in r.stdout
-    for ordre in ("init", "ship", "finish", "port", "neteja", "agent", "usage"):
+    for ordre in ("init", "ship", "finish", "port", "neteja", "agent", "usage", "tasca", "rebut"):
         assert ordre in r.stdout
 
 
@@ -26,17 +26,21 @@ def test_el_llancador_resol_l_enllac(tmp_path):
     enllac.parent.mkdir()
     enllac.symlink_to(BIN)
     r = nucli("--version", cwd=tmp_path)
-    assert r.returncode == 0 and r.stdout.strip() == "nucli 0.1.3"
+    assert r.returncode == 0 and r.stdout.strip() == "nucli 0.1.4"
 
 
-@pytest.mark.parametrize("args", [["ship", "plan"], ["finish"], ["port"], ["agent", "x1"], ["neteja"]])
+ORDRES_DE_REPO = [["ship", "plan"], ["ship", "plan", "--json"], ["finish"], ["port"], ["agent", "x1"], ["agent", "12"],
+                  ["neteja"], ["tasca", "12"], ["rebut", "markdown"]]
+
+
+@pytest.mark.parametrize("args", ORDRES_DE_REPO)
 def test_fora_d_un_repo_git_plega(tmp_path, args):
     r = nucli(*args, cwd=tmp_path)
     assert r.returncode != 0
     assert "no ets dins d'un repo git" in r.stderr
 
 
-@pytest.mark.parametrize("args", [["ship", "plan"], ["finish"], ["port"], ["agent", "x1"], ["neteja"]])
+@pytest.mark.parametrize("args", ORDRES_DE_REPO)
 def test_repo_sense_nucli_json_plega(fes_repo, args):
     arrel = fes_repo(config=None)
     r = nucli(*args, cwd=arrel)
@@ -92,12 +96,38 @@ def test_config_completa_els_valors_per_defecte(tmp_path):
     ({"versio": 1, "checks": {"m": {"manual": "x", "fora_sandbox": True}}}, "no pot ser «fora_sandbox»"),
     ({"versio": 1, "docs": {"decisions": {"cami": "D.md", "format": "raro"}}}, "«adr» o «data»"),
     ({"versio": 1, "agent": {"torns": 0}}, "enter positiu"),
+    ({"versio": 1, "tasques": {"fitxer": "T.md"}}, "«tasques» ha de tenir «fitxer» i «prefix»"),
+    ({"versio": 1, "tasques": {"fitxer": "T.md", "prefix": "mt", "font": "jira"}},
+     "«tasques.font» ha de ser «fitxer» o «github-issues»"),
+    ({"versio": 1, "tasques": {"fitxer": "T.md", "prefix": "mt", "font": "github-issues"}}, "cal «tasques.branca»"),
+    ({"versio": 1, "tasques": {"fitxer": "T.md", "prefix": "mt", "font": "github-issues", "branca": "issue"}},
+     "acabat en «/»"),
+    ({"versio": 1, "tasques": {"fitxer": "T.md", "prefix": "mt", "font": "github-issues", "branca": "/"}},
+     "acabat en «/»"),
 ])
 def test_config_invalida(tmp_path, dades, error):
     p = escriu(tmp_path, "nucli.json", json.dumps(dades))
     with pytest.raises(Plega) as e:
         config.llegeix(p)
     assert error in str(e.value)
+
+
+@pytest.mark.parametrize("tasques", [
+    {"fitxer": "TASQUES.md", "prefix": "mt"},                                    # com fins ara: font «fitxer»
+    {"font": "fitxer", "fitxer": "TASQUES.md", "prefix": "mt"},
+    {"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md", "prefix": "mt"},
+])
+def test_tasques_valides(tmp_path, tasques):
+    p = escriu(tmp_path, "nucli.json", json.dumps({"versio": 1, "tasques": tasques}))
+    assert config.llegeix(p)["tasques"] == tasques
+
+
+def test_branca_d_issues_per_defecte_i_de_nucli_json():
+    assert config.branca_issues({}) == "issue/" and config.branca_issues({"tasques": None}) == "issue/"
+    cfg = {"tasques": {"font": "github-issues", "branca": "tasca/", "fitxer": "T.md", "prefix": "mt"}}
+    assert config.branca_issues(cfg) == "tasca/"
+    assert config.issue_de_branca("tasca/7-x", cfg) == 7 and config.issue_de_branca("issue/7-x", cfg) is None
+    assert config.issue_de_branca("worktree-issue-7", cfg) == 7
 
 
 def test_json_trencat(tmp_path):
@@ -113,3 +143,4 @@ def test_l_exemple_del_marcador_es_valid():
     web = [r for r in cfg["regles"] if r["patrons"] == ["web/**"]][0]
     assert web["checks"] == ["lint", "smoke", "visual"]
     assert cfg["checks"]["smoke"]["fora_sandbox"] is True
+    assert cfg["tasques"] == {"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md", "prefix": "mt"}

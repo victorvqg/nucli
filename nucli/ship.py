@@ -430,9 +430,29 @@ def executa_check(repo: Repo, cfg: dict, nom: str, via: str, tolera: bool = Fals
 
 # ---------- ordres ----------
 
-def ordre_plan(repo: Repo) -> int:
+def pla_json(repo: Repo, cfg: dict, pla: "Pla") -> dict:
+    """El pla per a una màquina (la CI): els mateixos fitxers i checks que el text, calculats amb les mateixes regles."""
+    return {
+        "nucli": VERSIO,
+        "branca": repo.branca(),
+        "base": pla.ref_base,
+        "merge_base": pla.merge_base,
+        "requerits": pla.requerits,
+        "automatics": [{"check": c, "ordre": cfg["checks"][c]["ordre"],
+                        "fora_sandbox": bool(cfg["checks"][c].get("fora_sandbox"))} for c in pla.automatics(cfg)],
+        "manuals": [{"check": c, "text": text_manual(cfg, c)} for c in pla.manuals(cfg)],
+        "fitxers": [{"estat": f.estat, "cami": f.cami, "regles": f.regles, "checks": f.checks, "config": f.config,
+                     "no_llegible": f.no_llegible} for f in pla.fitxers],
+        "no_llegibles": pla.fora_del_pla(),
+    }
+
+
+def ordre_plan(repo: Repo, en_json: bool = False) -> int:
     cfg = repo.config()
     pla = calcula_pla(repo, tolera=True)
+    if en_json:
+        print(json.dumps(pla_json(repo, cfg, pla), indent=2, ensure_ascii=False))
+        return 0
     print(f"nucli ship plan · branca {repo.branca()} · base {pla.ref_base} (merge-base {pla.merge_base[:8]})")
     print(f"Regles: {repo.cami_config}")
     fora = pla.fora_del_pla()
@@ -501,7 +521,7 @@ def ordre_seal(repo: Repo) -> int:
 def ordre(args) -> int:
     repo = troba_repo()
     if args.pas == "plan":
-        return ordre_plan(repo)
+        return ordre_plan(repo, getattr(args, "json", False))
     if args.pas == "run":
         return ordre_run(repo, args.check)
     return ordre_seal(repo)

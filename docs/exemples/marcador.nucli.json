@@ -14,7 +14,7 @@
       {"cami": "docs/DISSENY.md", "prefix": "md"}
     ]
   },
-  "tasques": {"fitxer": "TASQUES.md", "prefix": "mt"},
+  "tasques": {"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md", "prefix": "mt"},
   "checks": {
     "lint":       {"ordre": "bash scripts/check.sh"},
     "test":       {"ordre": "cd scraper && \"$NUCLI_ARREL/.venv/bin/python\" -m unittest discover -s tests"},

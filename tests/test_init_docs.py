@@ -162,3 +162,18 @@ def test_normalitza():
     assert docs.normalitza("Lliçons apreses") == "llicons apreses"
     assert docs.coincideix_nom("estat actual i pla de treball", {"estat actual"})
     assert not docs.coincideix_nom("estructura", {"estat"})
+
+
+def test_el_bloc_diu_els_ids_d_issue():
+    """v0.1.4: a una branca d'issue l'id és #N, i amb github-issues el fitxer de tasques és historial."""
+    from nucli import docs
+    base = {"idioma": "ca", "docs": {"adoptats": [{"cami": "TASQUES.md", "prefix": "mt"}]},
+            "tasques": {"fitxer": "TASQUES.md", "prefix": "mt"}}
+    bloc = docs.bloc_nucli(base, per_claude=True)
+    assert "(a una branca d'issue, `issue/N-…`, l'id és `#N` i l'assumpte acaba en ` (#N)`)" in bloc
+    assert "historial" not in bloc and "`nucli tasca N`" in bloc
+    amb = dict(base, tasques={"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md", "prefix": "mt"})
+    bloc = docs.bloc_nucli(amb, per_claude=False)
+    assert "Les tasques, però, són issues de GitHub (etiqueta `tasca`) i el seu id és `#N`" in bloc
+    assert "`TASQUES.md` és historial: no s'hi crea cap `mtN` nou." in bloc and "nucli tasca" not in bloc
+    assert "`nucli tasca N`" in docs.claude_nou()

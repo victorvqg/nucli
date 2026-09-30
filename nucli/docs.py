@@ -11,7 +11,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Optional
 
-from .config import ROLS, TIPUS_COMMIT, cami_doc
+from .config import ROLS, TIPUS_COMMIT, branca_issues, cami_doc
 
 PLANTILLES = Path(__file__).resolve().parent.parent / "plantilles"
 
@@ -165,6 +165,10 @@ def _frase_docs(cfg: dict) -> str:
     if adoptats:
         ids = ", ".join(f"`{a['prefix']}N` a `{a['cami']}`" for a in adoptats)
         frase += f" Ids fixos i mai reutilitzats ({ids}): un id nou és el màxim del fitxer + 1."
+    t = cfg.get("tasques") or {}
+    if t.get("font") == "github-issues":
+        frase += (f" Les tasques, però, són issues de GitHub (etiqueta `tasca`) i el seu id és `#N`, el número de l'issue. "
+                  f"`{t['fitxer']}` és historial: no s'hi crea cap `{t['prefix']}N` nou.")
     return frase
 
 
@@ -176,7 +180,8 @@ def bloc_nucli(cfg: dict, per_claude: bool) -> str:
         _frase_docs(cfg),
         "",
         "Cicle de cada canvi: llegeix els docs i la tasca → si toca més d'un mòdul, pla a `.nucli/pla-<id>.md` abans del codi → "
-        f"canvi mínim, amb commits `tipus(àmbit): què (<id>)` {idioma} → `nucli ship plan` → `nucli ship run <check>` per a "
+        f"canvi mínim, amb commits `tipus(àmbit): què (<id>)` {idioma} (a una branca d'issue, `{branca_issues(cfg)}N-…`, "
+        "l'id és `#N` i l'assumpte acaba en ` (#N)`) → `nucli ship plan` → `nucli ship run <check>` per a "
         "cada check automàtic → `nucli ship seal`. Si no pots acabar, escriu per què a `.nucli/atura-<id>.md` i no facis "
         "commit de feina a mitges.",
         "",
@@ -192,6 +197,7 @@ def linies_claude() -> list:
     return [
         "worktrees amb `claude --worktree <id>` només si `nucli init` no avisa de permisos pendents",
         "`nucli finish` no el llancis tu: el fa l'usuari al terminal o amb `!`",
+        "per començar un issue en una sessió, `nucli tasca N` (fa servir `gh`: la llança l'usuari, o demana-li permís)",
         "per tancar o pausar la sessió, la skill `tanca-sessio`.",
     ]
 

@@ -1,6 +1,6 @@
 # NUCLI.md — especificació i pla de la v0.1
 
-Última revisió: 2026-09-30 · Versió: **0.1.3** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505), correccions de la v0.1.2 (n511) i millores de la v0.1.3 (n607). La v0.1 es construeix per fases (§8), amb un commit per fase.
+Última revisió: 2026-09-30 · Versió: **0.1.4** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505), correccions de la v0.1.2 (n511), millores de la v0.1.3 (n607) i tasques amb issues de GitHub de la v0.1.4 (n642). La v0.1 es construeix per fases (§8), amb un commit per fase.
 
 Canvis de la n478 respecte de l'esborrany:
 1. El forat dels worktrees afecta **qualsevol** worktree, també un `claude --worktree` interactiu. `nucli init` detecta les regles ancorades al checkout principal i proposa (sense aplicar-les) les versions que cobreixen `.claude/worktrees/**`, i que l'`allow` dels scripts relatius només valgui al checkout principal. Mentre no hi siguin, `init` ho avisa i `nucli agent` no arrenca (§5.1, §5.4, §7.1).
@@ -22,6 +22,16 @@ Canvis de la v0.1.3 (n607), trobats en fer servir el nucli al marcador:
 2. **`nucli neteja` també esborra branques.** A més dels worktrees, proposa esborrar les branques locals ja fusionades a la base per història, amb `git branch -d` (mai `-D`), el mateix `[s/N]` i el mateix `--dry-run`. Mai la branca actual ni la base (§5.3).
 3. **Ordre nova, `nucli secret NOM --env ENTORN [--des-de NOM_AL_ENV]`**, per desar a GitHub un valor del `.env` sense ensenyar-lo. Només la llança una persona: sense terminal, o dins de Claude Code, plega abans de llegir res. `nucli init` proposa `Bash(nucli secret:*)` a `deny`, i `nucli agent` la té a `--disallowedTools` (§5.9). La causa és al §7.8.
 
+Canvis de la v0.1.4 (n642), el primer PR del pas 4 del flux del marcador (`pla-pas4.md`, §2.2): les tasques noves són issues de GitHub, i el seu id és `#N`, el número de l'issue.
+1. **`nucli.json`**: `tasques` admet `"font": "github-issues"` i `"branca": "issue/"`. Sense `font`, tot va com fins ara (§5.0).
+2. **Branques d'issue al `commit-msg`**: `issue/N-…` (o el prefix de `tasques.branca`) i `worktree-issue-N` són de l'issue `#N`, i l'assumpte ha d'**acabar** en ` (#N)`. Les `mtX` continuen igual (§5.5).
+3. **La CI pot fer el mateix rebut que `nucli finish`**: `nucli ship plan --json` i `nucli rebut markdown [--origen ci]` (§5.2).
+4. **`nucli finish`**: amb una branca d'issue, el cos del PR nou comença amb `Closes #N`. No toca etiquetes (§5.2).
+5. **`nucli agent 12`** (o `#12`) treballa l'issue #12: el llegeix amb `gh` abans de llançar res i plega si no porta `tasca` o si és `interactiu` (§5.4).
+6. **Ordre nova, `nucli tasca N`**, per a les sessions: branca `issue/N-descripcio` des de la base i `estat: en-curs` a l'issue (§5.10).
+7. **`tanca-sessio`** apunta a issues (`#N`), no crea mai cap `mtX` (proposa el text de l'issue perquè l'obris tu) i, a una branca d'issue, fa el commit amb ` (#N)` (§5.6).
+8. El bloc «Nucli» de `CLAUDE.md` i `AGENTS.md` diu els ids `#N`, i les línies de Claude, `nucli tasca N` (§5.1).
+
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
 ---
@@ -40,8 +50,8 @@ Canvis de la v0.1.3 (n607), trobats en fer servir el nucli al marcador:
 
 Llegit en només lectura el 29/9/2026: `CLAUDE.md`, `TASQUES.md`, `PROPOSTES.md`, `DECISIONS.md`, `docs/DISSENY.md`, `scripts/agent.sh` i `.claude/settings.json`. També he mirat `AGENTS.md`, `.gitignore`, `scripts/check.sh` i `ci.yml`.
 
-- **Ids fixos, mai reutilitzats**: `mtX` (tasques), `mpX` (propostes), `mdX` (tensions de disseny), `maNNN`/`nNNN` (torns). El nucli ho generalitza: cada doc adoptat declara el seu prefix, i un id nou és sempre el màxim de tot el fitxer + 1, comptant també «Fet» i «Descartades».
-- **Commits**: `tipus(àmbit): què (mtX)` en català. L'id de la tasca va al commit que la tanca. `agent.sh` també fa servir `wip(...)` i `chore(tasques)`.
+- **Ids fixos, mai reutilitzats**: `mtX` (tasques), `mpX` (propostes), `mdX` (tensions de disseny), `maNNN`/`nNNN` (torns). El nucli ho generalitza: cada doc adoptat declara el seu prefix, i un id nou és sempre el màxim de tot el fitxer + 1, comptant també «Fet» i «Descartades». *v0.1.4*: les tasques noves són issues de GitHub (`#N`), i no es crea cap `mtX` nou (§5.0).
+- **Commits**: `tipus(àmbit): què (mtX)` en català (a les branques d'issue, `… (#N)`, v0.1.4). L'id de la tasca va al commit que la tanca. `agent.sh` també fa servir `wip(...)` i `chore(tasques)`.
 - **REGLA ZERO, punt 5**: l'agent treballa en una branca i no fusiona, no desplega i no fa push. `nucli agent` el manté, i `nucli finish` l'executa una persona.
 - **Pla abans del codi en zona sensible**, i les decisions de «no fer X» també es documenten. El cicle de l'agent ho inclou.
 - **Provar el comportament**, no només que no peti: cada check guarda la sortida, i el segell exigeix que el check s'hagi executat sobre l'arbre exacte del commit (§5.2).
@@ -87,8 +97,8 @@ Comprovat el 29/9/2026 amb el CLI 2.1.284, a `code.claude.com/docs/en/{hooks,wor
 bin/nucli              llançador (python3, només biblioteca estàndard); resol el seu enllaç i importa nucli/
 nucli/                 paquet: comu.py (git, arrels), config.py (nucli.json), patrons.py (sintaxi .gitignore),
                        docs.py i init.py (init), permisos.py (settings.json i worktrees), ship.py, finish.py,
-                       worktree.py (port, neteja), agent.py, secret.py, ganxos.py (hooks de Claude), githooks.py,
-                       us.py
+                       worktree.py (port, neteja), agent.py, secret.py, tasca.py, rebut.py (rebut markdown),
+                       ganxos.py (hooks de Claude), githooks.py, us.py
 githooks/              pre-push, commit-msg (els activa core.hooksPath)
 skills/tanca-sessio/   SKILL.md
 plantilles/            CLAUDE.md, AGENTS.md, ESTAT.md, DECISIONS.md, TRAMPES.md, CONVENCIONS.md, ARQUITECTURA.md, nucli.json
@@ -125,7 +135,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
       {"cami": "docs/DISSENY.md", "prefix": "md"}
     ]
   },
-  "tasques": {"fitxer": "TASQUES.md", "prefix": "mt"},
+  "tasques": {"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md", "prefix": "mt"},
   "checks": {
     "lint":       {"ordre": "bash scripts/check.sh"},
     "test":       {"ordre": "cd scraper && \"$NUCLI_ARREL/.venv/bin/python\" -m unittest discover -s tests"},
@@ -155,6 +165,10 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - **`regles`**: els patrons segueixen la sintaxi `.gitignore`. Sense `/`, coincideixen amb el nom del fitxer a qualsevol nivell; amb `/`, des de l'arrel; `**` vol dir qualsevol nombre de carpetes.
   - Si un fitxer coincideix amb diverses regles, es fa la unió dels seus checks.
   - Si un fitxer **no coincideix amb cap**, s'aplica `per_defecte`. Així un fitxer que no s'ha previst no es queda mai sense checks.
+- **`tasques`** (v0.1.4): d'on surten les tasques.
+  - `"font": "fitxer"`, o sense `font` (com fins a la v0.1.3): la cua és el fitxer `fitxer`, amb ids `<prefix>N` (`mt12`).
+  - `"font": "github-issues"`: les tasques són issues de GitHub, i el seu id és `#N`. Cal `branca`, el prefix de les branques d'issue, acabat en `/` (`issue/`). `fitxer` i `prefix` es mantenen i passen a ser l'historial: els `mtX` vells es continuen reconeixent, però no se'n crea cap de nou.
+  - Les branques d'issue (`issue/N-…`, o les de `branca`) es reconeixen sempre, també sense `github-issues`: així una branca d'issue no passa sense vigilar mentre el repo encara no ha canviat de font.
 - **Variables de les ordres**: `NUCLI_ARREL` (l'arrel del checkout principal, perquè el `.venv` no és al worktree), `NUCLI_WORKTREE` (l'arrel del worktree actual) i `NUCLI_PORT` (§5.3).
 
 ### 5.1 Docs: `nucli init [--dry-run] [--adopta rol=camí]…`
@@ -167,7 +181,8 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
    `--adopta arquitectura=INFORME_TECNIC.md` força una adopció que la detecció no veu.
 2. **Crea a `docs/` només el que falta**, a partir de plantilles curtes (encapçalament, «com s'escriu una entrada» i cap contingut inventat). **No mou, no renomena i no reescriu res**, i no toca cap id.
 3. **`CLAUDE.md` i `AGENTS.md`** (menys de 40 línies cadascun):
-   - Si no n'hi ha cap, `AGENTS.md` porta el contingut (docs, cicle i «mai») i `CLAUDE.md` = `@AGENTS.md` + 5–8 línies només per a Claude (worktrees, `nucli finish` pregunta, skill `tanca-sessio`).
+   - Si no n'hi ha cap, `AGENTS.md` porta el contingut (docs, cicle i «mai») i `CLAUDE.md` = `@AGENTS.md` + 5–8 línies només per a Claude (worktrees, `nucli finish` pregunta, `nucli tasca N`, skill `tanca-sessio`).
+   - El cicle diu que, a una branca d'issue, l'id és `#N` i l'assumpte acaba en ` (#N)`. Amb `github-issues`, el bloc diu també que les tasques són issues i que el fitxer de tasques és historial (v0.1.4).
    - Si ja existeixen, **no els toca**: escriu la proposta de fusió a `.nucli/proposta/CLAUDE.md` i `.nucli/proposta/AGENTS.md` i n'ensenya el diff. La proposta és el fitxer tal com és més un bloc `## Nucli` curt al final (P1): on són els docs, el cicle i «mai». No n'aprima ni en mou res. Si el fitxer ja té el bloc, no proposa res.
 4. **`nucli.json`**: el crea si no existeix, amb el que ha detectat i les ordres de check que endevina. Les endevinades porten el comentari «REVISA» a la sortida. Si ja existeix, no el toca.
 5. **Afegeix sense tocar res més** (més detall a §5.2, §5.3 i §5.5):
@@ -192,6 +207,7 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - Si el checkout principal no té `nucli.json`, plega i diu «primer executa `nucli init`».
 - Treu la llista de fitxers → regla que els toca → checks, i els checks requerits al final.
 - Els fitxers que no es poden llegir (v0.1.2) surten com a «no llegible (sandbox) → ni esborrat ni canvi: fora del pla». Si els commits de la branca (o l'índex) en canvien un, aquest canvi sí que compta, amb la nota «només compta el canvi dels commits»: git el sap sense llegir el fitxer.
+- **`--json`** (v0.1.4): el mateix pla per a una màquina (la CI), calculat amb les mateixes regles i sense cap altra sortida: `nucli` (la versió), `branca`, `base`, `merge_base`, `requerits`, `automatics` (`check`, `ordre`, `fora_sandbox`), `manuals` (`check`, `text`; també `revisio-config`), `fitxers` (`estat`, `cami`, `regles`, `checks`, `config`, `no_llegible`) i `no_llegibles` (els que queden fora del pla).
 - **Regla fixa del nucli, no configurable**: si el diff toca `nucli.json`, `.claude/**`, `.mcp.json`, `.worktreeinclude`, `.gitignore`, `githooks/**`, `.github/workflows/**` o `.github/actions/**`, s'hi afegeix el check manual `revisio-config` («canvi de configuració o de seguretat: revisió humana»). Principi (e). Els workflows i les accions de GitHub (v0.1.3) guarden i fan servir secrets: són configuració de seguretat. Només compten els de l'arrel, que és on GitHub els llegeix.
 
 **`nucli ship run <check>`**
@@ -213,6 +229,13 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents`, `fora_sandbox_pendents`, `no_llegibles` (v0.1.2) i un `sha256` del contingut canònic del rebut.
 - Si falla, diu exactament què falta: «test: executat sobre un arbre diferent del de HEAD (has editat després?)».
 
+**`nucli rebut markdown [--origen ci]`** (v0.1.4)
+- Escriu a la sortida el bloc «Rebut del nucli» del rebut segellat de la branca. És el que `nucli finish` posa al PR (el mateix codi), perquè la CI en pugui fer un d'idèntic.
+- Hi surten: per a cada check automàtic requerit pel segell, l'execució que el fa valer (check · codi · durada · hora); les confirmacions manuals, si n'hi ha; a part, el que el segell no cobreix, és a dir, els manuals sense confirmar («Checks manuals pendents (revisió humana)») i els `fora_sandbox` pendents («sense executar»); i el HEAD i la versió del nucli.
+- Només llegeix el rebut, i no executa res. Plega si no hi ha rebut, si no està segellat, si el `sha256` no quadra o si HEAD no és el del segell.
+- Per defecte diu «executats per `nucli finish`», i plega si el rebut no hi ha passat. Amb `--origen ci`, diu «executats per la CI».
+- El flux de la CI (els workflows són del repo, no del nucli): `nucli ship plan --json` → `nucli ship run <check>` de cada automàtic requerit (també els `fora_sandbox`: a la CI no hi ha sandbox) → `nucli ship seal` → `nucli rebut markdown --origen ci`.
+
 **`nucli finish`** (l'executes sempre tu, en un terminal, és a dir, fora del sandbox). Va per passos, i al primer refús s'atura **sense executar ni pujar res**, amb el motiu i l'ordre que ho arregla:
 1. **Git i rebut** (no executa res de la branca). Es nega a continuar si:
    - ets a la branca base;
@@ -230,9 +253,10 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 4. **Executa contra HEAD tots els checks automàtics requerits**, també els `fora_sandbox` pendents, un darrere l'altre, a l'arrel del worktree i amb l'arbre net. Després de cada check comprova que HEAD no ha canviat i que l'arbre continua net: un check que modifica fitxers és un refús. Cada execució queda al rebut amb `"via": "finish"`. **Si algun falla, no puja res** i el rebut queda sense segell. Si tots passen, **segella** (ara sense cap pendent).
 5. Si tot és correcte:
    - `git push -u origin <branca>` (el pre-push del nucli el deixa passar perquè no és `main`);
-   - `gh pr create --base main` amb el títol del primer commit de la branca i el resum a la descripció: la taula check · codi · durada · hora **de les execucions del pas 4**, les confirmacions manuals, HEAD i versió del nucli.
+   - `gh pr create --base main` amb el títol del primer commit de la branca i el resum a la descripció (el bloc de `nucli rebut markdown`): la taula check · codi · durada · hora **de les execucions del pas 4**, les confirmacions manuals, HEAD i versió del nucli;
+   - amb una branca d'issue (`issue/N-…` o `worktree-issue-N`, v0.1.4), la descripció comença amb `Closes #N`, perquè GitHub tanqui l'issue en fusionar el PR. No toca etiquetes.
 
-   Si la branca ja té un PR obert, fa el push i hi afegeix el resum com a comentari. **No fa mai merge.**
+   Si la branca ja té un PR obert, fa el push i hi afegeix el resum com a comentari, sense `Closes`. **No fa mai merge.**
 
 Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè la persona que ha llegit el diff ho confirmi abans que el codi de la branca s'executi fora del sandbox; després `finish` corre sol fins al PR.
 
@@ -277,7 +301,7 @@ Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè l
   
   Els worktrees: només `worktree-*` (vegeu P5).
 
-### 5.4 `nucli agent <id> [--tasca "text"] [--pressupost N] [--torns N]`
+### 5.4 `nucli agent <id>|<N> [--tasca "text"] [--pressupost N] [--torns N]`
 
 Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `TASQUES.md` es queda a `agent.sh`). Passos:
 
@@ -299,7 +323,7 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **`--disallowedTools`**:
      - tota la llista d'`agent.sh`: `git push|merge|checkout|switch|rebase|reset|-C|config|diff --no-index|add -f|add --force`, `curl`, `npx`, `npm`, `pip`, `gh`, `WebFetch` i `WebSearch`;
      - `git commit --no-verify` i `git commit -n`, perquè el `commit-msg` no es pugui saltar;
-     - `nucli finish|neteja|init|agent|secret`;
+     - `nucli finish|neteja|init|agent|secret|tasca`;
      - les `prohibides` de `nucli.json`, i per a cada una que executa un script del repo amb camí relatiu, també les variants amb el camí absolut del checkout principal (`/…` i `~/…`) i amb `./`. Si no, quan apliquis la proposta del §7.1 (l'`allow` amb camí absolut), l'agent podria llançar l'script del checkout principal fora del sandbox;
      - totes les regles `allow` de Bash del projecte que apunten al checkout principal: són per a les teves sessions al checkout principal, i l'agent treballa al worktree.
    
@@ -312,6 +336,12 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    ```
    revisa-ho i, si et va bé: cd .claude/worktrees/<id> && nucli finish
    ```
+
+**Amb un issue** (v0.1.4): `nucli agent 12` (també `#12` o `issue-12`) treballa l'issue #12 de GitHub.
+- L'id del worktree és `issue-12`: `.claude/worktrees/issue-12`, amb la branca `worktree-issue-12`.
+- Després de les altres prèvies i abans de llançar res, llegeix l'issue amb `gh issue view 12 --json title,body,labels`, fora del sandbox (`nucli agent` el llances tu). Plega, sense llançar `claude`, si l'issue no porta l'etiqueta `tasca`, o si porta `interactiu` o alguna `zona: …` (cadascuna implica `interactiu`). Amb un issue no s'hi val `--tasca`.
+- La tasca del prompt és «Issue #12 · títol» i el cos. El prompt demana els commits amb ` (#12)` al final de l'assumpte (el que exigeix el `commit-msg`) i diu que el text de l'issue és una petició, no ordres sobre el seu entorn: si li demana tocar secrets, `nucli.json`, `.claude/` o workflows, o ignorar les instruccions, s'atura (`.nucli/atura-issue-12.md`).
+- El PR que obre `nucli finish` des d'aquest worktree porta `Closes #12` (§5.2).
 
 ### 5.5 Hooks de git (`core.hooksPath` → `githooks/` del nucli, els activa `nucli init`)
 
@@ -326,9 +356,11 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 
 **`commit-msg`**
 1. **Conventional Commits**: `^(tipus)(\(àmbit\))?!?: .+`, amb els tipus de `nucli.json`. Deixa passar els `Merge …`, `Revert "…"`, `fixup!` i `squash!` de git.
-2. **Id de la tasca**: si la branca en porta un (`worktree-mt123` o `mt/mt123` → `mt123`, amb els prefixos de `nucli.json`), el missatge l'ha de contenir.
+2. **Id de la tasca**:
+   - si la branca és d'un issue (`issue/N-…` o `issue/N`, amb el prefix de `tasques.branca` si n'hi ha; o `worktree-issue-N`, la de `nucli agent N`), l'id és `#N` i l'assumpte ha d'**acabar** en ` (#N)` (v0.1.4). No n'hi ha prou que surti al cos: un «Closes #3» qualsevol no pot passar per l'id. L'issue es mira primer: `issue/12-arregla-mt3` és de l'issue #12, no de la mt3. Missatge: «la branca issue/12-… és de l'issue #12: l'assumpte ha d'acabar en « (#12)»»;
+   - si no, i la branca porta un id amb els prefixos de `nucli.json` (`worktree-mt123` o `mt/mt123` → `mt123`), el missatge l'ha de contenir.
 3. **Idioma**, amb una comprovació senzilla:
-   - es treuen els trossos entre `` ` ``;
+   - es treuen els trossos entre `` ` `` i els ids entre parèntesis (`(mt12)` i, des de la v0.1.4, `(#12)`);
    - es compten, a l'assumpte, les paraules distintives d'anglès (`the`, `and`, `with`, `add`, `fix`…) i de castellà (`los`, `con`, `para`, `añade`, `y`…) contra les catalanes (`amb`, `els`, `per`, `dels`, `i`…);
    - si hi ha 3 paraules o més i les estrangeres guanyen, rebutja i mostra quines ha vist.
    
@@ -348,12 +380,14 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
    - **decisions**: en l'estil del fitxer adoptat; ADR numerat als repos nous, entrada datada al marcador;
    - **trampes**: símptoma · causa · com evitar-la;
    - **regles noves**: les **proposa** com a canvi de `nucli.json` o de convencions, sense aplicar-les;
-   - **estat**: `docs/ESTAT.md` es reescriu sencer (ara · següent · bloquejat · data).
-3. No duplica: busca abans el que ja hi ha. Els ids nous són el màxim del fitxer + 1.
+   - **estat**: `docs/ESTAT.md` es reescriu sencer (ara · següent · bloquejat · data). Amb `tasques.font: github-issues` (v0.1.4), «Següent» i «Bloquejat» apunten a issues (`#N`). Per saber què hi ha obert, `gh issue list --label tasca --state open --json number,title,labels`, que només llegeix; si no el pot executar, no s'inventa cap número. El fitxer de tasques és historial: no el llegeix com a cua.
+3. No duplica: busca abans el que ja hi ha. Els ids nous són el màxim del fitxer + 1. **Una tasca nova no és mai un id del fitxer de tasques** (v0.1.4): no crea cap `mtX` ni cap issue. En proposa el text al resum final, amb els apartats del formulari d'issues del repo (`.github/ISSUE_TEMPLATE/`), perquè l'obris tu.
 4. Si algun d'aquests fitxers ja tenia canvis sense commit, t'ho diu i et pregunta abans de continuar.
 5. **Mai fa commit a `main`** (ni a la `branca_base`) (v0.1.2). Si la sessió és a `main`, o amb HEAD desenganxat, primer crea una branca pròpia, `git switch -c docs/sessio-AAAA-MM-DD-HHMM`, amb la data i l'hora d'ara (`-2`, `-3`… si ja existeix), i fa el commit allà. Els canvis sense commit que hi hagués passen a la branca nova sense tocar-los.
-6. Fa commit **només dels docs que ha tocat** (`git add <camins>`), amb `docs(sessio): tancament del AAAA-MM-DD` (+ `(<id>)` si la branca en porta). Passa pel `commit-msg`.
-7. Acaba amb un resum de què ha escrit on, la branca i el hash. L'última línia recorda sempre que la branca s'ha de pujar amb `nucli finish`, des del terminal (abans, `nucli ship seal`). **Mai fa push.**
+6. Fa commit **només dels docs que ha tocat** (`git add <camins>`), amb `docs(sessio): tancament del AAAA-MM-DD` (+ `(<id>)` si la branca en porta; a una branca d'issue, ` (#N)` al final de l'assumpte, v0.1.4). Passa pel `commit-msg`.
+7. Acaba amb un resum de què ha escrit on, les tasques noves que proposa, la branca i el hash. L'última línia recorda sempre que la branca s'ha de pujar amb `nucli finish`, des del terminal (abans, `nucli ship seal`). **Mai fa push.**
+
+Proposta per al `.claude/settings.json` del marcador (l'edites tu; `pla-pas4.md` §4.3): `allow` de `Bash(gh issue list:*)` i `Bash(gh issue view:*)`, que només llegeixen. `gh issue create|edit|comment` continuen preguntant.
 
 ### 5.7 Mesura
 
@@ -403,6 +437,19 @@ Desa a GitHub (`gh secret set NOM --env ENTORN`) un valor del `.env` **sense ens
 
 Mai no imprimeix el valor, ni tan sols als errors. `nucli init` proposa `Bash(nucli secret:*)` a `deny` (§5.2) i `nucli agent` la posa a `--disallowedTools` (§5.4).
 
+### 5.10 `nucli tasca N` (v0.1.4)
+
+Comença en una sessió la feina de l'issue #N (`12` o `#12`). Fa servir `gh` i la xarxa: la llances tu, al terminal o amb `!`, o Claude després de preguntar-te-la (no se li proposa cap `allow`). `nucli agent` la té a `--disallowedTools`.
+
+1. Llegeix l'issue amb `gh issue view N --json number,title,state,labels`. Si no és obert, plega.
+2. La branca és `<tasques.branca>N-<slug>` (per defecte, `issue/N-<slug>`), amb el *slug* del títol.
+3. Si l'issue ja té alguna branca, local o al remot (`git ls-remote`), plega sense crear-ne cap altra: `issue/N-…` amb un altre títol, `worktree-issue-N`…
+4. `git fetch origin <branca_base>` i `git switch --no-track -c <branca> origin/<branca_base>`: la branca surt de la base d'ara i no segueix `main`. Els canvis sense commit que hi hagués passen a la branca nova, si git ho permet.
+5. Canvia l'estat de l'issue: `gh issue edit N --add-label 'estat: en-curs'`, i treu les altres `estat: …` que tingués (`estat: aprovada`…). Si no pot (per exemple, si l'etiqueta encara no existeix), la branca ja hi és: ho diu, amb l'ordre per fer-ho a mà, i surt amb 1.
+6. No fa mai commit ni push. Recorda que els commits van amb ` (#N)` i que el PR de `nucli finish` portarà `Closes #N`.
+
+**El *slug***, que ha de fer exactament igual `tasques_gh.py` (els agents del marcador): el títol en NFKD, sense el que no és ASCII (així cauen els accents: `ç` → `c`, `l·l` → `ll`), en minúscules; cada tros que no és `[a-z0-9]` passa a un sol `-`; sense `-` als extrems; tallat a 40 caràcters i sense `-` al final. Si no en queda res, `tasca`. Per exemple, «Mostra l'escut al capçal» → `mostra-l-escut-al-capcal` i «Col·legi — àrbitres» → `collegi-arbitres`.
+
 ## 6. Què toca el nucli a cada repo (i res més)
 
 | Fitxer | Què hi fa | Qui ho aplica |
@@ -415,6 +462,7 @@ Mai no imprimeix el valor, ni tan sols als errors. `nucli init` proposa `Bash(nu
 | `.claude/settings.json` | + `Bash(nucli finish:*)` a `ask`; res més | `init` |
 | `.git/config` | `core.hooksPath` | `init` |
 | regles `allow` o de protecció noves, i les dels worktrees (§7.1) | només **proposta**, a `.nucli/proposta/` (`permisos.md`, `allow.md` i `deny.md`) | tu |
+| la branca `issue/N-…` i l'estat de l'issue a GitHub (`estat: en-curs`) | els crea i el canvia (v0.1.4, §5.10) | `nucli tasca`, que llances tu |
 
 ## 7. Trampes detectades abans de començar (el marcador)
 
@@ -504,6 +552,6 @@ Resum de les decisions: **P1 = A**, **P2** segons la recomanació, **P3 = sí** 
 - Revisió visual automàtica.
 - Repo de docs multi-repo.
 - Base de dades per worktree.
-- Integració a la CI.
+- Integració a la CI: els workflows són de cada repo. Des de la v0.1.4, el nucli només hi posa `nucli ship plan --json` i `nucli rebut markdown --origen ci` (§5.2), perquè la CI faci el mateix rebut.
 - Moure tasques entre seccions de `TASQUES.md` (es queda a `agent.sh`).
 - Fer servir el nucli dins del mateix repo `nucli`.

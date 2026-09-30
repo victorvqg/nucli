@@ -123,6 +123,93 @@ def test_id_de_la_branca(repo):
     assert fes_commit(repo, "fix(app): el total (mt13)", fitxer="g.txt").returncode == 0
 
 
+# ---------- branques d'issue (v0.1.4) ----------
+
+def fes_commit_amb_cos(arrel, missatge, fitxer="f.txt"):
+    escriu(arrel, fitxer, missatge)
+    git(arrel, "add", "-A")
+    return sh("git", "commit", "-q", "-F", "-", cwd=arrel, check=False, entrada=missatge)
+
+
+def test_branca_d_issue_exigeix_l_assumpte_acabat_en_numero(repo):
+    git(repo, "checkout", "-q", "-b", "issue/12-arregla-el-total")
+    r = fes_commit(repo, "fix(app): el total")
+    assert r.returncode != 0
+    assert "la branca issue/12-arregla-el-total és de l'issue #12: l'assumpte ha d'acabar en « (#12)»" in r.stderr
+    assert fes_commit(repo, "fix(app): el total (#12)").returncode == 0
+
+
+@pytest.mark.parametrize("missatge", [
+    "fix(app): el total\n\nCloses #12\n",          # només al cos: un «Closes #N» no passa per l'id
+    "fix(app): el total\n\nÉs la part (#12).\n",
+    "fix(app): el total (#12) i el subtotal",        # al mig de l'assumpte, no al final
+    "fix(app): el total (#123)",                     # un altre número
+    "fix(app): el total(#12)",                       # sense l'espai
+    "fix(app): el total #12",
+    "fix(app): el total (12)",
+])
+def test_branca_d_issue_rebutja_el_numero_fora_del_final(repo, missatge):
+    git(repo, "checkout", "-q", "-b", "issue/12-arregla-el-total")
+    r = fes_commit_amb_cos(repo, missatge)
+    assert r.returncode != 0 and "és de l'issue #12" in r.stderr
+
+
+def test_branca_d_issue_amb_numero_al_final_i_cos(repo):
+    git(repo, "checkout", "-q", "-b", "issue/12-arregla-el-total")
+    assert fes_commit_amb_cos(repo, "fix(app): el total (#12)\n\nCloses #12\n").returncode == 0
+
+
+@pytest.mark.parametrize("branca", ["issue/12", "worktree-issue-12", "worktree-issue-12-segona"])
+def test_altres_formes_de_branca_d_issue(repo, branca):
+    git(repo, "checkout", "-q", "-b", branca)
+    r = fes_commit(repo, "fix(app): el total")
+    assert r.returncode != 0 and "és de l'issue #12" in r.stderr
+    assert fes_commit(repo, "fix(app): el total (#12)", fitxer="g.txt").returncode == 0
+
+
+def test_l_issue_mana_sobre_la_tasca_del_nom(repo):
+    """`issue/12-arregla-mt3` és de l'issue #12, no de la mt3."""
+    git(repo, "checkout", "-q", "-b", "issue/12-arregla-mt3")
+    r = fes_commit(repo, "fix(app): el total (mt3)")
+    assert r.returncode != 0 and "és de l'issue #12" in r.stderr and "és de la tasca mt3" not in r.stderr
+    assert fes_commit(repo, "fix(app): el total de la mt3 (#12)", fitxer="g.txt").returncode == 0
+
+
+def test_les_mt_continuen_igual_amb_github_issues(fes_repo):
+    cfg = dict(CONFIG_MINIMA, tasques={"font": "github-issues", "branca": "issue/", "fitxer": "TASQUES.md",
+                                       "prefix": "mt"})
+    arrel = fes_repo(config=cfg)
+    git(arrel, "config", "core.hooksPath", GITHOOKS)
+    git(arrel, "checkout", "-q", "-b", "mt/mt82")
+    r = fes_commit(arrel, "fix(app): el total")
+    assert r.returncode != 0 and "és de la tasca mt82" in r.stderr
+    assert fes_commit(arrel, "fix(app): el total (mt82)").returncode == 0
+
+
+def test_prefix_de_branca_de_nucli_json(fes_repo):
+    cfg = dict(CONFIG_MINIMA, tasques={"font": "github-issues", "branca": "tasca/", "fitxer": "TASQUES.md",
+                                       "prefix": "mt"})
+    arrel = fes_repo(config=cfg)
+    git(arrel, "config", "core.hooksPath", GITHOOKS)
+    git(arrel, "checkout", "-q", "-b", "tasca/7-mode-fosc")
+    r = fes_commit(arrel, "feat(web): mode fosc")
+    assert r.returncode != 0 and "és de l'issue #7" in r.stderr
+    assert fes_commit(arrel, "feat(web): mode fosc (#7)").returncode == 0
+
+
+@pytest.mark.parametrize("branca, id_", [
+    ("issue/12-arregla-el-total", "#12"), ("issue/12", "#12"), ("issue/012-x", "#12"), ("worktree-issue-12", "#12"),
+    ("issue/12-arregla-mt3", "#12"), ("worktree-mt12", "mt12"), ("mt/mt13", "mt13"), ("feature/issue/12-x", None),
+    ("issue/abc", None), ("issues/12-x", None), ("worktree-issue-x", None), ("main", None),
+])
+def test_id_de_branca(branca, id_):
+    assert githooks.id_de_branca(branca, ["mt"], {}) == id_
+
+
+def test_el_numero_de_l_issue_no_compta_com_a_paraula():
+    assert githooks.paraules_estrangeres("afegeix el total (#12)")[2] == 3
+
+
 def test_nucli_idioma_0_s_anota(repo, entorn):
     r = fes_commit(repo, "feat: add the new thing", env_extra={"NUCLI_IDIOMA": "0"})
     assert r.returncode == 0, r.stderr

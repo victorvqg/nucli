@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
+from typing import Optional
 
 from .comu import Plega
 
@@ -12,6 +14,9 @@ CHECK_REVISIO_CONFIG = "revisio-config"
 TEXT_REVISIO_CONFIG = "Canvi de configuració o de seguretat: revisió humana"
 ROLS = ("estat", "decisions", "trampes", "convencions", "arquitectura")
 TIPUS_COMMIT = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert", "wip"]
+FONTS_TASQUES = ("fitxer", "github-issues")
+BRANCA_ISSUES = "issue/"          # branques d'issue per defecte: issue/N-descripcio (v0.1.4)
+WORKTREE_ISSUE = "worktree-issue-"  # la branca del worktree de `nucli agent N` (id issue-N)
 
 PER_DEFECTE = {
     "versio": VERSIO_CONFIG,
@@ -130,6 +135,14 @@ def valida(d) -> list:
     t = d.get("tasques")
     if t is not None and not (isinstance(t, dict) and isinstance(t.get("fitxer"), str) and isinstance(t.get("prefix"), str)):
         e.append("«tasques» ha de tenir «fitxer» i «prefix»")
+    if isinstance(t, dict):
+        font = t.get("font", "fitxer")
+        if font not in FONTS_TASQUES:
+            e.append(f"«tasques.font» ha de ser {' o '.join(f'«{f}»' for f in FONTS_TASQUES)}")
+        if font == "github-issues" and "branca" not in t:
+            e.append("amb «tasques.font» «github-issues», cal «tasques.branca» (p. ex. «issue/»)")
+        if "branca" in t and not (isinstance(t["branca"], str) and len(t["branca"]) > 1 and t["branca"].endswith("/")):
+            e.append("«tasques.branca» ha de ser un text acabat en «/» (p. ex. «issue/»)")
 
     commits = d.get("commits", {})
     if not (isinstance(commits, dict) and _es_llista_de_textos(commits.get("tipus", TIPUS_COMMIT))):
@@ -153,6 +166,20 @@ def cami_doc(valor) -> str:
     if isinstance(valor, dict):
         valor = valor["cami"]
     return valor.split("#", 1)[0]
+
+
+def branca_issues(cfg: dict) -> str:
+    """El prefix de les branques d'issue: el de «tasques.branca», i si no n'hi ha, «issue/»."""
+    return (cfg.get("tasques") or {}).get("branca") or BRANCA_ISSUES
+
+
+def issue_de_branca(branca: str, cfg: dict) -> Optional[int]:
+    """El número de l'issue d'una branca `issue/N-…` (o `issue/N`) o `worktree-issue-N` (la de `nucli agent N`)."""
+    for patro in (rf"^{re.escape(branca_issues(cfg))}(\d+)(?:-|$)", rf"^{re.escape(WORKTREE_ISSUE)}(\d+)(?:-|$)"):
+        m = re.match(patro, branca or "")
+        if m:
+            return int(m.group(1))
+    return None
 
 
 def prefixos_tasques(cfg: dict) -> list:

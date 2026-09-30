@@ -32,6 +32,8 @@ _ORDRES = {
     "port": ("worktree", "ordre_port"),
     "neteja": ("worktree", "ordre_neteja"),
     "agent": ("agent", "ordre"),
+    "tasca": ("tasca", "ordre"),
+    "rebut": ("rebut", "ordre"),
     "secret": ("secret", "ordre"),
     "usage": ("us", "ordre"),
     "hook": ("ganxos", "ordre"),
@@ -56,7 +58,8 @@ def construeix_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("ship", help="porta amb rebut: plan, run <check>, seal")
     ss = s.add_subparsers(dest="pas", metavar="<pas>")
-    ss.add_parser("plan", help="quins checks demana el diff d'aquesta branca")
+    pl = ss.add_parser("plan", help="quins checks demana el diff d'aquesta branca")
+    pl.add_argument("--json", action="store_true", help="el pla en JSON (per a la CI): checks automàtics i manuals")
     r = ss.add_parser("run", help="executa un check i en desa el resultat al rebut")
     r.add_argument("check")
     ss.add_parser("seal", help="segella el rebut si tots els checks requerits són en verd sobre l'arbre de HEAD")
@@ -71,9 +74,20 @@ def construeix_parser() -> argparse.ArgumentParser:
                        "fusionades a la base (git branch -d)")
     s.add_argument("--dry-run", action="store_true", help="només diu què trauria")
 
+    s = sub.add_parser("rebut", help="el rebut segellat d'aquesta branca: markdown")
+    ss = s.add_subparsers(dest="accio", metavar="<acció>")
+    r = ss.add_parser("markdown", help="escriu el bloc «Rebut» (el del PR) a partir del rebut segellat")
+    r.add_argument("--origen", choices=["finish", "ci"], default="finish",
+                   help="qui ha executat els checks: nucli finish (per defecte) o la CI")
+
+    s = sub.add_parser("tasca", help="(la llances tu: fa servir gh) comença l'issue N: branca issue/N-… des de la base "
+                       "i «estat: en-curs»")
+    s.add_argument("numero", metavar="N", help="número de l'issue (12 o #12)")
+
     s = sub.add_parser("agent", help="llança un agent headless en un worktree nou")
-    s.add_argument("id", help="id del worktree i de la tasca ([a-z0-9-]+)")
-    s.add_argument("--tasca", help="text de la tasca (si no, el bloc <id> del fitxer de tasques)")
+    s.add_argument("id", help="id del worktree i de la tasca ([a-z0-9-]+), o el número d'un issue (12 o #12: "
+                   "worktree issue-12, amb el text de l'issue)")
+    s.add_argument("--tasca", help="text de la tasca (si no, el bloc <id> del fitxer de tasques; amb un issue, no)")
     s.add_argument("--pressupost", type=float, help="màxim en dòlars (per defecte, el de nucli.json)")
     s.add_argument("--torns", type=int, help="màxim de torns (per defecte, el de nucli.json)")
 
@@ -107,6 +121,8 @@ def main(argv=None) -> int:
         return 0
     if args.ordre == "ship" and not args.pas:
         parser.parse_args(["ship", "--help"])
+    if args.ordre == "rebut" and not args.accio:
+        parser.parse_args(["rebut", "--help"])
     modul, funcio = _ORDRES[args.ordre]
     try:
         try:

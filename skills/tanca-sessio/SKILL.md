@@ -21,13 +21,16 @@ Deixa escrit als docs del repo el que ha passat en aquesta sessió, perquè la s
 2. **Trampes** (`docs.trampes`): una entrada per trampa, `### títol` amb `- Símptoma:`, `- Causa:` i `- Com evitar-la:`.
 3. **Regles noves**: **només les proposes** al resum final, com a canvi concret de `nucli.json` o de `docs.convencions`. No les apliquis tu.
 4. **Estat** (`docs.estat`): reescriu el fitxer sencer amb `Última actualització: AAAA-MM-DD` i les seccions `## Ara`, `## Següent` i `## Bloquejat`. És l'única escriptura que substitueix contingut.
+   - Si `tasques.font` és `github-issues`, a «Següent» i «Bloquejat» cada tasca s'apunta amb el seu issue: `#N`. Per saber què hi ha obert: `gh issue list --label tasca --state open --json number,title,labels`, que només llegeix. Si no el pots executar (sense xarxa o sense permís), no t'inventis cap número: digues-ho al resum.
+   - Amb `github-issues`, el fitxer de tasques (`tasques.fitxer`) és historial: no el llegeixis com a cua ni hi escriguis res.
 
 Si una pila és buida, no hi escriguis res.
 
 ## 3. No dupliquis ni inventis ids
 
 - Abans d'escriure una decisió o una trampa, busca si ja hi és (també amb altres paraules). Si hi és, no la tornis a escriure.
-- Si has de crear un id en un doc adoptat (`docs.adoptats`, p. ex. `mt`, `mp`), és el màxim de **tot** el fitxer + 1, comptant també «Fet» i «Descartades». Mai reutilitzis un id.
+- **Una tasca nova no és mai un id del fitxer de tasques** (`tasques.prefix`, p. ex. `mt`): no creïs cap `mtX`, ni tampoc cap issue. Si de la sessió en surt una, proposa'n el text al resum final perquè l'obri l'usuari: amb `github-issues`, amb els apartats del formulari d'issues del repo (`.github/ISSUE_TEMPLATE/`; al Marcador, «Què vull», «Per què», «Criteri de fet», «Prioritat», «Mida», «Zones delicades» i «Notes»), i si no, com un bloc sense id perquè l'afegeixi ell al fitxer de tasques.
+- Si has de crear un id en un altre doc adoptat (`docs.adoptats`, p. ex. `mp`, `md`), és el màxim de **tot** el fitxer + 1, comptant també «Fet» i «Descartades». Mai reutilitzis un id.
 
 ## 4. Abans d'escriure
 
@@ -38,12 +41,14 @@ Si una pila és buida, no hi escriguis res.
 - **Mai facis commit a `main`**, ni a la `branca_base` de `nucli.json` si és una altra. Mira on ets amb `git branch --show-current`.
 - Si hi ets (o si surt buit, HEAD desenganxat), abans del commit crea una branca pròpia i passa-hi: `git switch -c docs/sessio-AAAA-MM-DD-HHMM`, amb la data i l'hora d'ara (`date +%Y-%m-%d-%H%M`). Si ja existeix, afegeix-hi `-2`, `-3`… Els canvis sense commit que hi hagués passen a la branca nova: no en toquis cap.
 - `git add` **només** dels docs que has tocat (camins concrets, mai `-A`).
-- Missatge: `docs(sessio): tancament del AAAA-MM-DD`. Si la branca porta un id de tasca amb els prefixos de `nucli.json` (`worktree-mt12` o `mt/mt12` → `mt12`), afegeix ` (mt12)` al final.
+- Missatge: `docs(sessio): tancament del AAAA-MM-DD`.
+  - Si la branca és d'un issue (`issue/12-…`, o `<prefix>12-…` si `tasques.branca` en diu un altre, o `worktree-issue-12`, la de `nucli agent 12`), afegeix ` (#12)` al final: l'assumpte **ha d'acabar** així, i no n'hi ha prou que surti al cos.
+  - Si no, i la branca porta un id de tasca amb els prefixos de `nucli.json` (`worktree-mt12` o `mt/mt12` → `mt12`), afegeix ` (mt12)` al final.
 - El hook `commit-msg` del nucli el validarà: si el rebutja, corregeix el missatge. Mai `--no-verify`.
 - **Mai facis push**, ni `nucli finish`.
 
 ## 6. Resum final
 
-Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar), la branca i el hash del commit. Si has creat la branca, digues-ho.
+Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar), les tasques noves que proposes (el text perquè l'usuari obri l'issue: tu no l'obres), la branca i el hash del commit. Si has creat la branca, digues-ho.
 
 L'última línia, **sempre**: recorda a l'usuari que aquesta branca (digues quina) s'ha de pujar amb `nucli finish`, des del terminal. Abans, `nucli ship seal` (i `nucli ship run <check>` dels checks que demani `nucli ship plan`).

@@ -7,7 +7,8 @@
    demana confirmació explícita [s/N], amb el no per defecte. Amb un no, no fa res.
 4. Executa contra HEAD tots els checks automàtics requerits, també els `fora_sandbox` pendents, i segella.
    Si algun falla, no puja res.
-5. Push de la branca i PR (o comentari al PR obert). Mai merge.
+5. Push de la branca i PR (o comentari al PR obert). Mai merge. Amb una branca d'issue (`issue/N-…` o
+   `worktree-issue-N`), el PR nou comença amb `Closes #N` (v0.1.4). No toca etiquetes.
 """
 from __future__ import annotations
 
@@ -16,8 +17,9 @@ import shutil
 import subprocess
 import sys
 
-from . import VERSIO
 from .comu import Plega, Repo, troba_repo
+from .config import issue_de_branca
+from .rebut import markdown
 from .ship import (arbre_head, ara, calcula_pla, canvis_pendents, desa_rebut, estat_del_rebut, executa_check,
                    fitxers_del_diff, fitxers_dels_checks, llegeix_rebut, segella, sha_rebut, text_manual)
 
@@ -118,25 +120,12 @@ def executa_i_segella(repo: Repo, cfg: dict, pla, automatics: list, head: str, r
     print(f"Segellat · HEAD {segell['head'][:8]} · en verd contra HEAD: {', '.join(automatics)}")
 
 
-def resum(cfg: dict, head: str, registre: dict) -> str:
-    linies = ["## Rebut del nucli", "", f"Checks executats per `nucli finish` contra HEAD `{head[:12]}`:", ""]
-    if registre["execucions"]:
-        linies += ["| check | codi | durada | hora |", "|---|---|---|---|"]
-        linies += [f"| {e['check']} | {e['codi']} | {e['durada_s']} s | {e['hora']} |" for e in registre["execucions"]]
-    else:
-        linies.append("Cap check automàtic requerit.")
-    if registre["confirmacions"]:
-        linies += ["", "Confirmacions manuals:"]
-        linies += [f"- {c['check']}: {c['resposta']} ({c['hora']})" for c in registre["confirmacions"]]
-    linies += ["", f"HEAD `{head}` · nucli {VERSIO}"]
-    return "\n".join(linies) + "\n"
-
-
 def gh(*args: str, entrada: str = None) -> subprocess.CompletedProcess:
     return subprocess.run(["gh", *args], capture_output=True, text=True, input=entrada)
 
 
-def puja(repo: Repo, cfg: dict, branca: str, titol: str, cos: str) -> str:
+def puja(repo: Repo, cfg: dict, branca: str, titol: str, cos: str, capcalera: str = "") -> str:
+    """Push i PR nou amb `capcalera` + `cos`, o, si ja n'hi ha un d'obert, només el `cos` com a comentari."""
     r = subprocess.run(["git", "push", "-u", "origin", branca], cwd=str(repo.worktree))
     if r.returncode != 0:
         raise Plega("el push ha fallat (si l'has llançat des del Bash de Claude, és el sandbox: fes-ho al terminal)")
@@ -148,7 +137,8 @@ def puja(repo: Repo, cfg: dict, branca: str, titol: str, cos: str) -> str:
         if r.returncode != 0:
             raise Plega(f"push fet, però no he pogut comentar el PR #{pr['number']}: {r.stderr.strip()}")
         return f"push fet i resum afegit com a comentari al PR obert: {pr['url']}"
-    r = gh("pr", "create", "--base", cfg["branca_base"], "--head", branca, "--title", titol, "--body-file", "-", entrada=cos)
+    r = gh("pr", "create", "--base", cfg["branca_base"], "--head", branca, "--title", titol, "--body-file", "-",
+           entrada=capcalera + cos)
     if r.returncode != 0:
         raise Plega(f"push fet, però «gh pr create» ha fallat: {r.stderr.strip()}")
     return f"push fet i PR obert: {r.stdout.strip()}"
@@ -175,7 +165,9 @@ def ordre(args) -> int:
     else:
         print("Cap check automàtic requerit: no executo res de la branca.")
         rebut["finish"] = registre
-    missatge = puja(repo, cfg, branca, titol, resum(cfg, head, registre))
+    issue = issue_de_branca(branca, cfg)
+    capcalera = f"Closes #{issue}\n\n" if issue is not None else ""
+    missatge = puja(repo, cfg, branca, titol, markdown(rebut, "finish"), capcalera)
     registre["resultat"] = "pujat"
     desa_rebut(repo, rebut)
     print(f"nucli finish · {missatge}")
