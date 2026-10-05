@@ -118,3 +118,18 @@ def test_a_una_branca_d_issue_el_commit_acaba_en_numero(fes_repo, tmp_path, monk
     assert r.returncode != 0  # al cos no n'hi ha prou
     r = sh("git", "commit", "-q", "-m", f"{missatge} (#12)", cwd=arrel, check=False)
     assert r.returncode == 0, r.stderr
+
+
+# ---------- n884: els errors mecànics, a una comprovació automàtica; els de criteri, als docs ----------
+
+def test_classifica_els_errors_en_mecanics_i_de_criteri():
+    _, cos = frontmatter()
+    trampes = cos[cos.index("2. **Trampes**"):cos.index("3. **Regles noves**")]
+    for clau in ("**Mecànic**", "**No l'escriguis als docs**", "una regla de lint, un hook de pre-commit o un check de CI",
+                 "com a fitxa nova", "**De criteri**", "sí que va als docs"):
+        assert clau in trampes, clau
+    seccio1 = cos[cos.index("## 1. Troba nucli.json"):cos.index("## 2.")]
+    assert "comprovació automàtica" in seccio1 and "com a troballa" in seccio1
+    resum = cos[cos.index("## 6. Resum final"):]
+    assert "les comprovacions automàtiques que proposes per als errors mecànics" in resum
+    assert "com a troballa" in resum

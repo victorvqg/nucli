@@ -375,17 +375,17 @@ Versió general de `scripts/agent.sh`, sense res del marcador (el moviment de `T
 > Tanca una sessió de treball en un repo amb `nucli.json`: extreu de la conversa les decisions, les trampes, les regles noves i l'estat, les escriu als docs que diu `nucli.json` i en fa commit en una branca pròpia (mai a main), sense push. Usa-la quan l'usuari vulgui acabar o pausar la feina, amb frases com «tanca», «tanca la sessió», «hem acabat», «deixa-ho per avui», «plegem» o «ho deixem aquí».
 
 **Passos**
-1. Sense `nucli.json`, ho diu i s'atura.
+1. Sense `nucli.json`, ho diu i s'atura. Mira també si el repo té alguna comprovació automàtica: un check de `nucli.json` amb `ordre`, un workflow de CI o un hook de pre-commit (n884).
 2. Classifica el que ha passat a la sessió en quatre pilots:
    - **decisions**: en l'estil del fitxer adoptat; ADR numerat als repos nous, entrada datada al marcador;
-   - **trampes**: símptoma · causa · com evitar-la;
+   - **trampes**: símptoma · causa · com evitar-la. Abans de desar-ne cap, i també un error que s'ha repetit, el classifica (n884): **mecànic** (es pot comprovar sempre igual, sense criteri) no va als docs, i en proposa una comprovació automàtica (una regla de lint, un hook de pre-commit o un check de CI) com a fitxa nova; **de criteri** (cal pensar-hi cada vegada) sí que hi va;
    - **regles noves**: les **proposa** com a canvi de `nucli.json` o de convencions, sense aplicar-les;
    - **estat**: `docs/ESTAT.md` es reescriu sencer (ara · següent · bloquejat · data). Amb `tasques.font: github-issues` (v0.1.4), «Següent» i «Bloquejat» apunten a issues (`#N`). Per saber què hi ha obert, `gh issue list --label tasca --state open --json number,title,labels`, que només llegeix; si no el pot executar, no s'inventa cap número. El fitxer de tasques és historial: no el llegeix com a cua.
 3. No duplica: busca abans el que ja hi ha. Els ids nous són el màxim del fitxer + 1. **Una tasca nova no és mai un id del fitxer de tasques** (v0.1.4): no crea cap `mtX` ni cap issue. En proposa el text al resum final, amb els apartats del formulari d'issues del repo (`.github/ISSUE_TEMPLATE/`), perquè l'obris tu.
 4. Si algun d'aquests fitxers ja tenia canvis sense commit, t'ho diu i et pregunta abans de continuar.
 5. **Mai fa commit a `main`** (ni a la `branca_base`) (v0.1.2). Si la sessió és a `main`, o amb HEAD desenganxat, primer crea una branca pròpia, `git switch -c docs/sessio-AAAA-MM-DD-HHMM`, amb la data i l'hora d'ara (`-2`, `-3`… si ja existeix), i fa el commit allà. Els canvis sense commit que hi hagués passen a la branca nova sense tocar-los.
 6. Fa commit **només dels docs que ha tocat** (`git add <camins>`), amb `docs(sessio): tancament del AAAA-MM-DD` (+ `(<id>)` si la branca en porta; a una branca d'issue, ` (#N)` al final de l'assumpte, v0.1.4). Passa pel `commit-msg`.
-7. Acaba amb un resum de què ha escrit on, les tasques noves que proposa, la branca i el hash. L'última línia recorda sempre que la branca s'ha de pujar amb `nucli finish`, des del terminal (abans, `nucli ship seal`). **Mai fa push.**
+7. Acaba amb un resum de què ha escrit on, les tasques noves que proposa (també les comprovacions automàtiques dels errors mecànics), la branca i el hash. Si el repo no té cap comprovació automàtica, ho diu com a troballa (n884). L'última línia recorda sempre que la branca s'ha de pujar amb `nucli finish`, des del terminal (abans, `nucli ship seal`). **Mai fa push.**
 
 Proposta per al `.claude/settings.json` del marcador (l'edites tu; `pla-pas4.md` §4.3): `allow` de `Bash(gh issue list:*)` i `Bash(gh issue view:*)`, que només llegeixen. `gh issue create|edit|comment` continuen preguntant.
 
