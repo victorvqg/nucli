@@ -254,7 +254,7 @@ def test_finish_cami_bo(repo, wt, gh_fals):
     assert "Executo fora del sandbox, amb el codi d'aquesta branca: lint, test. Has llegit el diff? [s/N]" in r.stdout
     assert "No he fet cap merge" in r.stdout
     assert "Closes" not in cos  # worktree-feina no és una branca d'issue
-    md = nucli("rebut", "markdown", cwd=wt)  # v0.1.4: el mateix bloc, a partir del rebut segellat
+    md = nucli("rebut", "markdown", "--seccions", cwd=wt)  # v0.1.6: el mateix cos, a partir del rebut segellat
     assert md.returncode == 0 and md.stdout == cos
 
 
@@ -496,9 +496,9 @@ def test_finish_d_una_branca_d_issue_posa_closes(repo, gh_fals, branca):
     r = finish_amb_terminal(cami, "s\n")
     assert r.returncode == 0, r.stdout + r.stderr
     cos = gh_fals["cos"].read_text()
-    assert cos.startswith("Closes #12\n\n## Rebut del nucli\n")
+    assert cos.startswith("Closes #12\n\n## Resum\n")
     assert f"pr create --base main --head {branca} --title feat(app): canvi" in gh_fals["registre"].read_text()
-    assert cos == "Closes #12\n\n" + nucli("rebut", "markdown", cwd=cami).stdout
+    assert cos == "Closes #12\n\n" + nucli("rebut", "markdown", "--seccions", cwd=cami).stdout
 
 
 def test_finish_d_issue_amb_pr_obert_comenta_sense_closes(repo, gh_fals):
@@ -510,7 +510,7 @@ def test_finish_d_issue_amb_pr_obert_comenta_sense_closes(repo, gh_fals):
     assert r.returncode == 0, r.stdout + r.stderr
     assert "pr comment 7 --body-file -" in gh_fals["registre"].read_text()
     cos = gh_fals["cos"].read_text()
-    assert cos.startswith("## Rebut del nucli") and "Closes" not in cos
+    assert cos.startswith("## Resum\n") and "## Rebut del nucli" in cos and "Closes" not in cos
 
 
 def test_finish_amb_el_prefix_de_nucli_json(repo, gh_fals):
@@ -537,7 +537,7 @@ def test_plan_json(repo, wt):
     commit(wt, "feat(web): canvi")
     escriu(wt, "app.py", "x = 3\n")  # també els canvis sense commit, com el text
     p = pla_json(wt)
-    assert p["nucli"] == "0.1.4" and p["branca"] == "worktree-feina" and p["base"] == "origin/main"
+    assert p["nucli"] == "0.1.6" and p["branca"] == "worktree-feina" and p["base"] == "origin/main"
     assert p["merge_base"] == git(wt, "merge-base", "origin/main", "HEAD")
     assert p["requerits"] == ["lint", "test", "visual"]
     assert p["automatics"] == [{"check": "lint", "ordre": "echo lint-ok", "fora_sandbox": False},
@@ -578,7 +578,7 @@ def test_rebut_markdown_de_la_ci(wt):
     head = git(wt, "rev-parse", "HEAD")
     assert r.stdout.startswith(f"## Rebut del nucli\n\nChecks executats per la CI contra HEAD `{head[:12]}`:\n")
     assert "| lint | 0 |" in r.stdout and "| test | 0 |" in r.stdout
-    assert r.stdout.rstrip().splitlines()[-1] == f"HEAD `{head}` · nucli 0.1.4"
+    assert r.stdout.rstrip().splitlines()[-1] == f"HEAD `{head}` · nucli 0.1.6"
     assert "nucli finish" not in r.stdout and "pendents" not in r.stdout
 
 

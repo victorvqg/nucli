@@ -79,6 +79,8 @@ def construeix_parser() -> argparse.ArgumentParser:
     r = ss.add_parser("markdown", help="escriu el bloc «Rebut» (el del PR) a partir del rebut segellat")
     r.add_argument("--origen", choices=["finish", "ci"], default="finish",
                    help="qui ha executat els checks: nucli finish (per defecte) o la CI")
+    r.add_argument("--seccions", action="store_true",
+                   help="hi afegeix, abans del rebut, les seccions «Resum» i «Risc de fusió» (v0.1.6)")
 
     s = sub.add_parser("tasca", help="(la llances tu: fa servir gh) comença l'issue N: branca issue/N-… des de la base "
                        "i «estat: en-curs»")

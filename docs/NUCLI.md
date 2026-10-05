@@ -1,6 +1,6 @@
 # NUCLI.md — especificació i pla de la v0.1
 
-Última revisió: 2026-09-30 · Versió: **0.1.4** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505), correccions de la v0.1.2 (n511), millores de la v0.1.3 (n607) i tasques amb issues de GitHub de la v0.1.4 (n642). La v0.1 es construeix per fases (§8), amb un commit per fase.
+Última revisió: 2026-10-05 · Versió: **0.1.6** · Estat: **aprovat amb canvis (n478)**, correcció de seguretat de la v0.1.1 (n505), correccions de la v0.1.2 (n511), millores de la v0.1.3 (n607), tasques amb issues de GitHub de la v0.1.4 (n642) i seccions automàtiques del rebut del PR de la v0.1.6 (#2, n894). La v0.1 es construeix per fases (§8), amb un commit per fase.
 
 Canvis de la n478 respecte de l'esborrany:
 1. El forat dels worktrees afecta **qualsevol** worktree, també un `claude --worktree` interactiu. `nucli init` detecta les regles ancorades al checkout principal i proposa (sense aplicar-les) les versions que cobreixen `.claude/worktrees/**`, i que l'`allow` dels scripts relatius només valgui al checkout principal. Mentre no hi siguin, `init` ho avisa i `nucli agent` no arrenca (§5.1, §5.4, §7.1).
@@ -31,6 +31,14 @@ Canvis de la v0.1.4 (n642), el primer PR del pas 4 del flux del marcador (`pla-p
 6. **Ordre nova, `nucli tasca N`**, per a les sessions: branca `issue/N-descripcio` des de la base i `estat: en-curs` a l'issue (§5.10).
 7. **`tanca-sessio`** apunta a issues (`#N`), no crea mai cap `mtX` (proposa el text de l'issue perquè l'obris tu) i, a una branca d'issue, fa el commit amb ` (#N)` (§5.6).
 8. El bloc «Nucli» de `CLAUDE.md` i `AGENTS.md` diu els ids `#N`, i les línies de Claude, `nucli tasca N` (§5.1).
+
+v0.1.5: etiqueta creada per error al commit 8a7197e; té el codi de la 0.1.4 més la tanca-sessio. No la feu servir; la feina de la fitxa #2 és a la v0.1.6.
+
+Canvis de la v0.1.6 (#2, n894, n897): el PR porta dues seccions automàtiques abans del rebut, perquè es pugui revisar sense obrir el diff. Les fa el nucli sol, amb git, el rebut i `nucli.json`: no executen res i no hi entra cap text d'un agent.
+1. **«Resum»**: l'arbre de fitxers de la branca contra el merge-base, amb l'estat (A/M/D/R) i les línies +/- per carpetes, també a la CI (§5.2).
+2. **«Risc de fusió»**: el veredicte («es pot desfer» o «difícil de desfer»), amb la clau nova opcional `risc` de `nucli.json`; els senyals (configuració, esborrats i renomenats, mida) i l'abast (carpetes de primer nivell i checks del segell) (§5.0, §5.2).
+3. **`nucli rebut markdown`** sense opcions continua idèntic; `--seccions` hi afegeix les dues seccions. **`nucli finish`** les posa sempre, també al comentari d'un PR obert (§5.2).
+4. Fora d'abast, per a més endavant: un fitxer declarat per l'agent o per tu (`.nucli/pr-*.json`), esquemes o Mermaid, una secció «Proves» i un diff curt.
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
@@ -169,6 +177,10 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
   - `"font": "fitxer"`, o sense `font` (com fins a la v0.1.3): la cua és el fitxer `fitxer`, amb ids `<prefix>N` (`mt12`).
   - `"font": "github-issues"`: les tasques són issues de GitHub, i el seu id és `#N`. Cal `branca`, el prefix de les branques d'issue, acabat en `/` (`issue/`). `fitxer` i `prefix` es mantenen i passen a ser l'historial: els `mtX` vells es continuen reconeixent, però no se'n crea cap de nou.
   - Les branques d'issue (`issue/N-…`, o les de `branca`) es reconeixen sempre, també sense `github-issues`: així una branca d'issue no passa sense vigilar mentre el repo encara no ha canviat de font.
+- **`risc`** (v0.1.6, opcional): el que fa que una branca sigui «difícil de desfer» al «Risc de fusió» del PR. Una llista de regles `{"patrons": [...], "motiu": "..."}`, amb els patrons de `regles`. Per exemple, `{"patrons": ["**/migrations/**"], "motiu": "una migració aplicada no es desfà amb un revert"}`.
+  - Si algun fitxer de la branca hi coincideix (també la ruta vella d'un renomenat o d'un esborrat), el veredicte és «difícil de desfer», amb el motiu i els fitxers.
+  - El motiu és un text d'una línia, de 200 caràcters com a màxim, i surt al PR escapat: es llegeix igual, però no hi fa cap format, enllaç ni menció.
+  - Com les regles, surt del `nucli.json` del checkout principal: una branca no pot rebaixar el veredicte editant-lo. A la CI, el checkout principal és el de la CI: si el vols fiable, que la CI no faci servir el `nucli.json` de la branca (canviar-lo, a més, ja demana `revisio-config`).
 - **Variables de les ordres**: `NUCLI_ARREL` (l'arrel del checkout principal, perquè el `.venv` no és al worktree), `NUCLI_WORKTREE` (l'arrel del worktree actual) i `NUCLI_PORT` (§5.3).
 
 ### 5.1 Docs: `nucli init [--dry-run] [--adopta rol=camí]…`
@@ -229,12 +241,17 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 - El segell desa: `head`, `arbre`, `hora`, `requerits`, `manuals_pendents`, `fora_sandbox_pendents`, `no_llegibles` (v0.1.2) i un `sha256` del contingut canònic del rebut.
 - Si falla, diu exactament què falta: «test: executat sobre un arbre diferent del de HEAD (has editat després?)».
 
-**`nucli rebut markdown [--origen ci]`** (v0.1.4)
+**`nucli rebut markdown [--origen ci] [--seccions]`** (v0.1.4; `--seccions`, v0.1.6)
 - Escriu a la sortida el bloc «Rebut del nucli» del rebut segellat de la branca. És el que `nucli finish` posa al PR (el mateix codi), perquè la CI en pugui fer un d'idèntic.
 - Hi surten: per a cada check automàtic requerit pel segell, l'execució que el fa valer (check · codi · durada · hora); les confirmacions manuals, si n'hi ha; a part, el que el segell no cobreix, és a dir, els manuals sense confirmar («Checks manuals pendents (revisió humana)») i els `fora_sandbox` pendents («sense executar»); i el HEAD i la versió del nucli.
 - Només llegeix el rebut, i no executa res. Plega si no hi ha rebut, si no està segellat, si el `sha256` no quadra o si HEAD no és el del segell.
 - Per defecte diu «executats per `nucli finish`», i plega si el rebut no hi ha passat. Amb `--origen ci`, diu «executats per la CI».
 - El flux de la CI (els workflows són del repo, no del nucli): `nucli ship plan --json` → `nucli ship run <check>` de cada automàtic requerit (també els `fora_sandbox`: a la CI no hi ha sandbox) → `nucli ship seal` → `nucli rebut markdown --origen ci`.
+- **Sense opcions, el bloc és exactament el de la v0.1.4** (llevat del número de versió del peu). Així una CI fixada a una versió no canvia quan l'actualitza.
+- **`--seccions`** (v0.1.6) hi afegeix, abans del bloc, «Resum» i «Risc de fusió». Es calculen amb el diff dels commits de la branca contra el merge-base amb la base (`git diff --name-status` i `--numstat`, amb `-M`, `-z`, `--no-ext-diff` i `--no-textconv`: git no executa cap programa de la configuració), el segell i `nucli.json`. Necessiten la història de la base: a la CI, un fetch de la branca base, com `ship plan`.
+  - **Resum**: «N fitxers · +X -Y · A … · M … · D … · R …» i l'arbre de fitxers en un bloc de codi: a cada nivell, primer les carpetes i després els fitxers, amb l'estat i les línies (`binari`, si ho és); un renomenat surt al lloc nou amb «(era camí-vell)». Amb més de 60 fitxers, en surten 60 i diu quants en falten.
+  - **Risc de fusió**: el veredicte, amb `risc` (§5.0). Sense cap regla, o si cap no hi coincideix, «**Es pot desfer** amb un revert del PR», i diu per què. Després, els **senyals**, que informen però no canvien el veredicte: els fitxers de configuració o de seguretat (els de `revisio-config`), els esborrats i els renomenats («vell → nou»), i la mida. I l'**abast**: les carpetes de primer nivell que toca (i l'arrel) i els checks que demana el segell.
+  - Els noms de fitxer són de la branca: a l'arbre van dins d'un bloc de codi amb una tanca més llarga que qualsevol seqüència de cometes que portin, i a la resta, en codi en línia. Els caràcters de control i de direcció del text s'hi escriuen escapats (`\n`, `\u202e`…). Cap nom no pot afegir enllaços, mencions ni HTML al PR. Cap contingut dels fitxers no hi surt.
 
 **`nucli finish`** (l'executes sempre tu, en un terminal, és a dir, fora del sandbox). Va per passos, i al primer refús s'atura **sense executar ni pujar res**, amb el motiu i l'ordre que ho arregla:
 1. **Git i rebut** (no executa res de la branca). Es nega a continuar si:
@@ -253,10 +270,10 @@ Va a git, a l'arrel del repo. `nucli init` en genera un de genèric (checks ende
 4. **Executa contra HEAD tots els checks automàtics requerits**, també els `fora_sandbox` pendents, un darrere l'altre, a l'arrel del worktree i amb l'arbre net. Després de cada check comprova que HEAD no ha canviat i que l'arbre continua net: un check que modifica fitxers és un refús. Cada execució queda al rebut amb `"via": "finish"`. **Si algun falla, no puja res** i el rebut queda sense segell. Si tots passen, **segella** (ara sense cap pendent).
 5. Si tot és correcte:
    - `git push -u origin <branca>` (el pre-push del nucli el deixa passar perquè no és `main`);
-   - `gh pr create --base main` amb el títol del primer commit de la branca i el resum a la descripció (el bloc de `nucli rebut markdown`): la taula check · codi · durada · hora **de les execucions del pas 4**, les confirmacions manuals, HEAD i versió del nucli;
+   - `gh pr create --base main` amb el títol del primer commit de la branca i, a la descripció, el que escriu `nucli rebut markdown --seccions`: «Resum» i «Risc de fusió» (v0.1.6) i, després, el rebut, amb la taula check · codi · durada · hora **de les execucions del pas 4**, les confirmacions manuals, HEAD i versió del nucli;
    - amb una branca d'issue (`issue/N-…` o `worktree-issue-N`, v0.1.4), la descripció comença amb `Closes #N`, perquè GitHub tanqui l'issue en fusionar el PR. No toca etiquetes.
 
-   Si la branca ja té un PR obert, fa el push i hi afegeix el resum com a comentari, sense `Closes`. **No fa mai merge.**
+   Si la branca ja té un PR obert, fa el push i hi afegeix el mateix cos com a comentari (amb les seccions), sense `Closes`. **No fa mai merge.**
 
 Totes les preguntes (manuals i confirmació) van abans d'executar res, perquè la persona que ha llegit el diff ho confirmi abans que el codi de la branca s'executi fora del sandbox; després `finish` corre sol fins al PR.
 
