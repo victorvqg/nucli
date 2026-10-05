@@ -12,13 +12,16 @@ Deixa escrit als docs del repo el que ha passat en aquesta sessió, perquè la s
 - Llegeix `nucli.json` a l'arrel del repo (`git rev-parse --show-toplevel`). Si ets en un worktree i no hi és, llegeix el del checkout principal (el primer camí de `git worktree list`).
 - **Si no n'hi ha cap, digues-ho i atura't.** Aquesta skill només treballa en repos amb el nucli.
 - Els camins de `docs` són relatius a l'arrel on treballes. Un valor `fitxer#Secció` vol dir «dins de la secció H2 `## Secció` d'aquell fitxer, al final».
+- Mira si el repo té alguna comprovació automàtica: un check de `nucli.json` amb `ordre`, un workflow de CI a `.github/workflows/` o un hook de pre-commit (`.pre-commit-config.yaml`, `.husky/`, o un `pre-commit` al `core.hooksPath`). Si no en té cap, apunta-ho: va al resum final com a troballa.
 
 ## 2. Classifica la sessió en quatre piles
 
 1. **Decisions** (`docs.decisions`), també les de «no farem X». Segueix el format del fitxer:
    - `"format": "adr"` (o sense format): `## ADR-NNNN · títol`, amb `Data:`, `Decisió:`, `Motiu:` i `Com revertir-la:`. El número és el màxim del fitxer + 1, amb quatre xifres.
    - `"format": "data"`: `## AAAA-MM-DD · títol`, amb `Decisió:`, `Motiu:` i `Com revertir-la:`. Mira una entrada existent i copia'n l'estil.
-2. **Trampes** (`docs.trampes`): una entrada per trampa, `### títol` amb `- Símptoma:`, `- Causa:` i `- Com evitar-la:`.
+2. **Trampes** (`docs.trampes`): una entrada per trampa, `### títol` amb `- Símptoma:`, `- Causa:` i `- Com evitar-la:`. Abans de desar-ne cap, i també un error que s'ha repetit, classifica'l:
+   - **Mecànic**: es pot comprovar sempre igual, sense criteri (un patró de text, un nom o una ordre prohibits, un fitxer que ha de ser a un lloc). **No l'escriguis als docs**: proposa una comprovació automàtica (una regla de lint, un hook de pre-commit o un check de CI) com a fitxa nova, al resum final (§3).
+   - **De criteri**: cal pensar-hi cada vegada. Aquest sí que va als docs.
 3. **Regles noves**: **només les proposes** al resum final, com a canvi concret de `nucli.json` o de `docs.convencions`. No les apliquis tu.
 4. **Estat** (`docs.estat`): reescriu el fitxer sencer amb `Última actualització: AAAA-MM-DD` i les seccions `## Ara`, `## Següent` i `## Bloquejat`. És l'única escriptura que substitueix contingut.
    - Si `tasques.font` és `github-issues`, a «Següent» i «Bloquejat» cada tasca s'apunta amb el seu issue: `#N`. Per saber què hi ha obert: `gh issue list --label tasca --state open --json number,title,labels`, que només llegeix. Si no el pots executar (sense xarxa o sense permís), no t'inventis cap número: digues-ho al resum.
@@ -49,6 +52,6 @@ Si una pila és buida, no hi escriguis res.
 
 ## 6. Resum final
 
-Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar), les tasques noves que proposes (el text perquè l'usuari obri l'issue: tu no l'obres), la branca i el hash del commit. Si has creat la branca, digues-ho.
+Acaba amb una llista curta: què has escrit i a quin fitxer, les regles que proposes (sense aplicar), les tasques noves que proposes (el text perquè l'usuari obri l'issue: tu no l'obres), les comprovacions automàtiques que proposes per als errors mecànics (també com a fitxa, amb el mateix format), la branca i el hash del commit. Si has creat la branca, digues-ho. Si el repo no té cap comprovació automàtica (§1), digues-ho com a troballa.
 
 L'última línia, **sempre**: recorda a l'usuari que aquesta branca (digues quina) s'ha de pujar amb `nucli finish`, des del terminal. Abans, `nucli ship seal` (i `nucli ship run <check>` dels checks que demani `nucli ship plan`).
