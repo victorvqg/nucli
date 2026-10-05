@@ -26,7 +26,7 @@ def test_el_llancador_resol_l_enllac(tmp_path):
     enllac.parent.mkdir()
     enllac.symlink_to(BIN)
     r = nucli("--version", cwd=tmp_path)
-    assert r.returncode == 0 and r.stdout.strip() == "nucli 0.1.4"
+    assert r.returncode == 0 and r.stdout.strip() == "nucli 0.1.6"
 
 
 ORDRES_DE_REPO = [["ship", "plan"], ["ship", "plan", "--json"], ["finish"], ["port"], ["agent", "x1"], ["agent", "12"],

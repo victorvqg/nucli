@@ -8,7 +8,8 @@
 4. Executa contra HEAD tots els checks automàtics requerits, també els `fora_sandbox` pendents, i segella.
    Si algun falla, no puja res.
 5. Push de la branca i PR (o comentari al PR obert). Mai merge. Amb una branca d'issue (`issue/N-…` o
-   `worktree-issue-N`), el PR nou comença amb `Closes #N` (v0.1.4). No toca etiquetes.
+   `worktree-issue-N`), el PR nou comença amb `Closes #N` (v0.1.4). No toca etiquetes. El cos porta sempre
+   «Resum» i «Risc de fusió» abans del rebut, també al comentari (v0.1.6).
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ import sys
 
 from .comu import Plega, Repo, troba_repo
 from .config import issue_de_branca
-from .rebut import markdown
+from .rebut import markdown, seccions
 from .ship import (arbre_head, ara, calcula_pla, canvis_pendents, desa_rebut, estat_del_rebut, executa_check,
                    fitxers_del_diff, fitxers_dels_checks, llegeix_rebut, segella, sha_rebut, text_manual)
 
@@ -167,7 +168,8 @@ def ordre(args) -> int:
         rebut["finish"] = registre
     issue = issue_de_branca(branca, cfg)
     capcalera = f"Closes #{issue}\n\n" if issue is not None else ""
-    missatge = puja(repo, cfg, branca, titol, markdown(rebut, "finish"), capcalera)
+    cos = seccions(repo, cfg, rebut) + "\n" + markdown(rebut, "finish")  # v0.1.6: «Resum» i «Risc de fusió», sempre
+    missatge = puja(repo, cfg, branca, titol, cos, capcalera)
     registre["resultat"] = "pujat"
     desa_rebut(repo, rebut)
     print(f"nucli finish · {missatge}")

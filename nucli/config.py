@@ -12,6 +12,7 @@ from .comu import Plega
 VERSIO_CONFIG = 1
 CHECK_REVISIO_CONFIG = "revisio-config"
 TEXT_REVISIO_CONFIG = "Canvi de configuració o de seguretat: revisió humana"
+MAX_MOTIU = 200  # v0.1.6: el motiu d'una regla de «risc» surt al PR
 ROLS = ("estat", "decisions", "trampes", "convencions", "arquitectura")
 TIPUS_COMMIT = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert", "wip"]
 FONTS_TASQUES = ("fitxer", "github-issues")
@@ -112,6 +113,20 @@ def valida(d) -> list:
         else:
             comprova_noms(r["checks"], f"la regla {i}")
     comprova_noms(d.get("per_defecte", []), "«per_defecte»")
+
+    risc = d.get("risc", [])  # v0.1.6: els patrons que fan una branca «difícil de desfer», amb el motiu
+    if not isinstance(risc, list):
+        e.append("«risc» ha de ser una llista de regles amb «patrons» i «motiu»")
+        risc = []
+    for i, r in enumerate(risc, 1):
+        if not isinstance(r, dict) or not (_es_llista_de_textos(r.get("patrons")) and r["patrons"]):
+            e.append(f"la regla de risc {i} ha de tenir «patrons» (llista de textos)")
+            continue
+        motiu = r.get("motiu")
+        if not (isinstance(motiu, str) and motiu.strip() and "\n" not in motiu and "\r" not in motiu
+                and len(motiu) <= MAX_MOTIU):
+            e.append(f"la regla de risc {i} ha de tenir «motiu»: un text d'una línia, de {MAX_MOTIU} caràcters "
+                     "com a màxim")
 
     docs = d.get("docs", {})
     if not isinstance(docs, dict):
