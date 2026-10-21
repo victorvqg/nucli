@@ -46,7 +46,7 @@ Les caselles amb la vora blava són els tres moments en què intervens tu. Les v
 
 | # | Qui | Què passa |
 |---|---|---|
-| 1 | **Tu** | Escrius la fitxa amb el formulari, des del mòbil o l'ordinador. Neix amb `estat: nova`. Si toca una zona delicada (infra, legal, producte, cobrament o dades), cap agent la fa: va pel camí interactiu. |
+| 1 | **Tu** | Escrius la fitxa amb el formulari, des del mòbil o l'ordinador. Neix amb `estat: nova`. Si toca una zona delicada, cap agent la fa: va pel camí interactiu. Les zones delicades són de cada projecte: el pas 5 de [Començar una webapp nova](../README.md#començar-una-webapp-nova) explica com es trien. |
 | 2 | Agent del pla | Llegeix la fitxa i el repo, sense poder escriure res. Deixa el pla en un comentari, amb les preguntes que té, i posa `estat: pla-proposat`. |
 | 3 | **Tu** | Contestes les preguntes en un comentari i poses `estat: aprovada`. L'agent no comença si queda alguna pregunta important sense resposta. |
 | 4 | Agent que implementa | Escriu el codi dins de les barreres, el prova amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la fitxa. |
@@ -55,7 +55,7 @@ Les caselles amb la vora blava són els tres moments en què intervens tu. Les v
 | 7 | Agent revisor | Quan poses l'etiqueta `revisa`, escriu un informe amb el que està bé i els defectes que s'han d'arreglar. |
 | 8 | Agent que respon | Escrius `@claude` al PR i l'agent hi afegeix un commit; a una fitxa, et respon amb text. Només fa cas de les teves mencions. Màxim 2 voltes per PR. |
 | 9 | **Tu** | Fusiones. Només tu pots: `main` està protegida i l'app de l'agent no hi pot escriure. |
-| 10 | GitHub | La web es publica i la fitxa es tanca sola pel `Closes`. Cada dia t'arriba un resum per Telegram. |
+| 10 | GitHub | La web es publica i la fitxa es tanca sola pel `Closes`. Cada dia feiner t'arriba un resum per Telegram. |
 
 ## El camí interactiu
 
@@ -101,7 +101,7 @@ Cada límit a 0 apaga aquell agent. Tots els repos comparteixen la mateixa subsc
 - **Una sola cosa per fitxa.** Si en té dues, en fas dues.
 - **Un criteri de fet que es pugui comprovar.** No «que quedi bonic», sinó «la pàgina 404 té el logotip i un botó per tornar a l'inici».
 - **Petita:** mida S o M, i com a màxim 8 criteris.
-- **Marca la zona amb sinceritat.** Si toca pagaments o dades, marca-la, encara que sembli petit.
+- **Marca la zona amb sinceritat.** Si toca una zona delicada del projecte, com els pagaments o les dades, marca-la, encara que sembli petit.
 
 ## Estat d'implantació (octubre de 2026)
 
