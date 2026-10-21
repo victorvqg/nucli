@@ -216,6 +216,31 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
 .uses b{display:block;font-weight:600;margin-bottom:4px}
 .uses span{color:var(--muted);font-size:14px}
 .legend2{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 14px}
+/* Un o diversos agents, i el motor */
+.par{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.par{grid-template-columns:minmax(0,1fr)}}
+.par > div{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--ok);border-radius:10px;padding:12px 14px}
+.par > div.one{border-top-color:var(--wip)} .par > div.no{border-top-color:var(--todo)}
+.par h3{font-size:15px;font-weight:600;margin:8px 0 4px}
+.par p{margin:0;color:var(--muted);font-size:14px}
+.mtab table{width:100%}
+.mtab th{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:4px 10px 6px 0;border-bottom:1px solid var(--line)}
+.mtab td{padding:8px 10px 8px 0;font-size:14px;vertical-align:top}
+.mtab td:last-child{font-family:var(--f-body);text-align:left;white-space:normal;color:var(--muted);padding-left:0}
+.mtab td:first-child{width:34%}
+.mtab tr.mine td{background:var(--accent-soft)}
+.mtab tr.mine td:first-child{box-shadow:inset 3px 0 0 var(--accent);padding-left:8px}
+.mtab .sm{font-size:12px;color:var(--muted)}
+.mtab td code{white-space:normal}
+@media (max-width:600px){
+  .mtab thead{display:none}
+  .mtab tr{display:block;border-bottom:1px solid var(--line);padding:8px 0}
+  .mtab tr:last-child{border-bottom:0}
+  .mtab td{display:block;border:0;padding:2px 0;width:auto}
+  .mtab td:first-child{width:auto}
+  .mtab tr.mine{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);padding-left:10px;padding-right:8px}
+  .mtab tr.mine td,.mtab tr.mine td:first-child{background:none;box-shadow:none;padding-left:0}
+}
 </style>
 </head>
 <body>
@@ -561,6 +586,48 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
       <div><b>Demanar una revisió</b><span>Posa <code>revisa</code> al PR. Quan hi sigui el B8.</span></div>
     </div>
     <p class="note">Les etiquetes que posa el robot, com <code>pla-proposat</code>, <code>en-curs</code> i <code>pr</code>, no les canviïs a mà: el robot es podria confondre.</p>
+  </section>
+
+  <section class="block" aria-labelledby="t-par">
+    <h2 id="t-par">Un o diversos agents alhora</h2>
+    <p class="intro">Cada agent és una execució de GitHub Actions, i GitHub en pot fer anar diverses al mateix temps. Depèn d'on treballin.</p>
+    <div class="par">
+      <div><span class="chip ok">sí</span><h3>En tasques diferents</h3><p>L'agent del pla pot escriure el pla de la #50 mentre l'agent que implementa treballa a la #49. Totes gasten de la mateixa subscripció, i per això els límits del dia compten el total.</p></div>
+      <div class="one"><span class="chip wip">d'un en un</span><h3>En una mateixa tasca o un mateix PR</h3><p>Un <code>@claude</code> cada vegada: espera la resposta i els checks en verd abans del següent. Si dos ajustos toquessin la mateixa branca alhora, es trepitjarien.</p></div>
+      <div class="no"><span class="chip todo">no</span><h3>Dins d'un sol agent</h3><p>Claude Code pot crear subagents que treballin en paral·lel, però les barreres només li deixen llegir, buscar i editar. Un agent tancat és més fàcil de vigilar.</p></div>
+    </div>
+    <div class="duo" style="margin-top:14px">
+      <div class="panel mtab">
+        <h2 style="font-size:16px">Com saps què treballa ara mateix</h2>
+        <table>
+          <tr><td><b>GitHub → Actions</b>, també a l'app del mòbil</td><td>Cada agent que treballa surt com una execució 🟡 en curs, amb el nom del workflow. N'hi pot haver més d'una alhora.</td></tr>
+          <tr><td><b>Les etiquetes de la tasca</b></td><td><code>estat: en-curs</code> vol dir que algú hi treballa ara.</td></tr>
+          <tr><td><b>Els ulls 👀</b></td><td>Un <code>@claude</code> rebut i en marxa.</td></tr>
+          <tr><td><b>Telegram</b></td><td>L'avís quan s'obre un PR i el resum del matí.</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h2 style="font-size:16px">El risc del paral·lel</h2>
+        <p>Si dues tasques toquen el mateix fitxer, el segon PR pot tenir conflictes quan fusionis el primer. L'agent no pot reescriure la branca, perquè el <code>push</code> forçat li està prohibit. Aquell conflicte el resols tu, pel camí interactiu.</p>
+        <p>Amb tasques petites que toquen fitxers diferents, gairebé no passa.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="t-motor">
+    <h2 id="t-motor">El motor dels agents</h2>
+    <p class="intro">Cada agent del flux és <b>Claude Code executat sense pantalla</b> (<code>claude -p</code>) dins de GitHub Actions. Aquest motor (en anglès, <i>harness</i>) és el bucle que pensa, crida les eines i decideix quan ha acabat. És el mateix que fa servir l'Agent SDK d'Anthropic. Les barreres del flux són la configuració d'aquest motor.</p>
+    <div class="panel mtab">
+      <table>
+        <thead><tr><th>Manera</th><th>Què és</th><th>Com es paga</th></tr></thead>
+        <tbody>
+          <tr class="mine"><td><b>Claude Code CLI</b><br><span class="sm">la del flux</span></td><td>El motor, cridat amb <code>claude -p</code> des d'un workflow</td><td>La subscripció, amb el token de <code>claude setup-token</code></td></tr>
+          <tr><td><b>Agent SDK</b></td><td>El mateix motor, com una biblioteca de Python o TypeScript dins d'un programa teu</td><td>Una clau de l'API, per ús</td></tr>
+          <tr><td><b>Managed Agents</b></td><td>Anthropic allotja el motor al seu núvol</td><td>Una clau de l'API, per ús</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>Si muntes el flux per a un client</b>, ha d'anar amb la clau o la subscripció del client, mai amb la teva. Anthropic no permet oferir a tercers l'inici de sessió de claude.ai ni els límits d'una subscripció.</p>
   </section>
 
   <section class="touch" aria-label="On intervens tu">

@@ -88,6 +88,30 @@ Per a les tasques amb zona delicada i per a les peces del mateix flux. Les fas t
 
 Cada límit a 0 apaga aquell agent. Tots els repos comparteixen la mateixa subscripció.
 
+## Un o diversos agents alhora
+
+Cada agent és una execució de GitHub Actions, i GitHub en pot fer anar diverses al mateix temps. Depèn d'on treballin:
+
+- **En tasques diferents, sí.** L'agent del pla pot escriure el pla d'una tasca mentre l'agent que implementa en fa una altra. Totes gasten de la mateixa subscripció, i per això els límits del dia compten el total.
+- **En una mateixa tasca o un mateix PR, d'un en un.** Un `@claude` cada vegada: espera la resposta i els checks en verd abans del següent.
+- **Dins d'un sol agent, no.** Claude Code pot crear subagents que treballin en paral·lel, però les barreres només li deixen llegir, buscar i editar.
+
+**Com saps què treballa ara mateix:** a **Actions** (també a l'app de GitHub del mòbil), cada agent en marxa surt com una execució 🟡 en curs; a la tasca, l'etiqueta `estat: en-curs`; al teu comentari, els ulls 👀; i a Telegram, l'avís quan s'obre un PR i el resum del matí.
+
+**El risc del paral·lel:** si dues tasques toquen el mateix fitxer, el segon PR pot tenir conflictes quan fusionis el primer. L'agent no pot reescriure la branca, perquè el `push` forçat li està prohibit, i per això el conflicte el resols tu pel camí interactiu. Amb tasques petites que toquen fitxers diferents, gairebé no passa.
+
+## El motor dels agents
+
+Cada agent del flux és **Claude Code executat sense pantalla** (`claude -p`) dins de GitHub Actions. Aquest motor (en anglès, *harness*) és el bucle que pensa, crida les eines i decideix quan ha acabat. És el mateix que fa servir l'[Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview) d'Anthropic. Les barreres del flux són la configuració d'aquest motor.
+
+| Manera | Què és | Com es paga |
+|---|---|---|
+| **Claude Code CLI** (la del flux) | El motor, cridat amb `claude -p` des d'un workflow | La subscripció, amb el token de `claude setup-token` |
+| **Agent SDK** | El mateix motor, com una biblioteca de Python o TypeScript dins d'un programa teu | Una clau de l'API, per ús |
+| **Managed Agents** | Anthropic allotja el motor al seu núvol | Una clau de l'API, per ús |
+
+**Si muntes el flux per a un client**, ha d'anar amb la clau o la subscripció del client, mai amb la teva. Anthropic no permet oferir a tercers l'inici de sessió de claude.ai ni els límits d'una subscripció.
+
 ## On intervens tu
 
 | Moment | Què fas |
