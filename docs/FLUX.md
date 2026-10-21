@@ -134,7 +134,7 @@ Al repo pilot de la web:
 | Pas | Estat |
 |---|---|
 | 1 a 6 · Tasca, pla, aprovació, implementació, PR i CI | ✅ 100 % |
-| 7 · El revisor | ⏳ 0 % |
+| 7 · El revisor | 🔧 50 %, en curs (la part sense model ja hi és; falta el workflow) |
 | 8 · Ajustos amb `@claude` | ✅ 100 % |
 | 9 i 10 · Fusió i publicació | ✅ 100 % |
 
