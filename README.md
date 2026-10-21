@@ -59,7 +59,7 @@ Després, a cada repo: `nucli init --dry-run` per veure què farà, i `nucli ini
 
 ## Començar una webapp nova
 
-De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code** o al **navegador**.
+De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code**, al **navegador** o a **Telegram**.
 
 1. **Instal·la el nucli** · Terminal, un cop per Mac. És la instal·lació de l'apartat anterior. Si ja la tens, salta aquest pas.
 
@@ -100,6 +100,8 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    - **Require a pull request before merging**, amb 0 aprovacions, perquè puguis fusionar els teus PR;
    - **Require status checks to pass before merging**, amb el check obligatori de la CI;
    - **Block force pushes**.
+
+   En un repo privat, la protecció de branques necessita GitHub Pro, Team o Enterprise. Amb el pla gratuït només funciona en repos públics ([documentació de GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)).
 
    El check de la CI només s'hi pot posar quan la CI ja existeix, i la crea la fitxa de l'stack (pas 6). Fins aleshores, deixa'l per més tard: un check obligatori que no arriba mai bloca tots els PR.
 
@@ -142,8 +144,10 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    Les etiquetes, al Terminal (o al navegador, a **Issues → Labels → New label**):
 
    ```bash
-   for e in nova pla-proposat aprovada en-curs pr; do gh label create "estat: $e"; done
+   for e in nova pla-proposat aprovada en-curs bloquejada pr; do gh label create "estat: $e"; done
    for z in infra legal producte cobrament dades; do gh label create "zona: $z"; done
+   for m in S M L; do gh label create "mida: $m"; done
+   for l in tasca interactiu P1 P2 P3 revisa; do gh label create "$l"; done
    ```
 
 6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
@@ -157,7 +161,28 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
    Quan la CI de l'stack hagi passat un cop, afegeix-ne el check a la regla de `main` (pas 5).
 
-7. **Engega els agents de GitHub** · navegador i Terminal, quan el projecte ja camina. Cal:
+7. **Connecta els avisos a Telegram** · Telegram, Terminal i navegador.
+   1. **Telegram:** escriu a @BotFather, envia-li `/newbot` i tria el nom del bot i un usuari acabat en `bot`. BotFather et dona el **token** del bot.
+   2. **Telegram:** obre el xat amb el bot nou i envia-li qualsevol missatge, o afegeix-lo al grup on vulguis els avisos. Si no, el bot no hi pot escriure.
+   3. **Terminal:** treu l'identificador del xat. El número que surt és l'identificador; en un grup, és negatiu.
+
+      ```bash
+      read -rs TOKEN    # enganxa el token i prem Retorn: no es veu ni queda a l'historial
+      curl -s "https://api.telegram.org/bot$TOKEN/getUpdates" | grep -o '"chat":{"id":-*[0-9]*'
+      ```
+
+   4. **Navegador:** crea l'entorn `avisos`, a **Settings → Environments → New environment**.
+   5. **Terminal o navegador:** desa el token i l'identificador a l'entorn `avisos` com a secrets, amb els noms `TELEGRAM_BOT_TOKEN` i `TELEGRAM_CHAT_ID`. Els poses tu, i mai la IA. Al Terminal, si els tens al `.env`, fes servir `nucli secret TELEGRAM_BOT_TOKEN --env avisos` i el mateix per a `TELEGRAM_CHAT_ID`: els desa sense ensenyar-los. Al navegador, ves a **Settings → Environments → avisos → Add environment secret**.
+   6. **Els workflows que envien els avisos**, que avui també es copien del repo pilot amb els scripts que fan servir:
+      - `avisos.yml` avisa quan s'obre un PR o quan passa a llest per revisar, i també quan acaben altres workflows, com la CI;
+      - `resum.yml` envia el resum diari, els dies feiners al matí.
+
+      Tots dos corren a l'entorn `avisos`.
+   7. **Prova-ho.** Al Terminal, executa `gh workflow run resum.yml`. També ho pots fer al navegador, a **Actions → resum diari a Telegram → Run workflow**. T'ha d'arribar el resum. Després, obre un PR de prova i t'ha d'arribar l'avís.
+
+   Un sol bot pot servir per a tots els projectes: posa el mateix token a cada repo. L'identificador de xat pot ser el mateix o un altre, si vols els avisos de cada projecte a part.
+
+8. **Engega els agents de GitHub** · navegador i Terminal, quan el projecte ja camina. Cal:
    - els workflows dels agents i dels canaris, i el fitxer `agents.json`, amb els fitxers que poden editar;
    - l'app de l'agent, instal·lada al repo, sense permís de workflows ni d'escriure a `main`;
    - els entorns de GitHub (**Settings → Environments**), on van els secrets;
