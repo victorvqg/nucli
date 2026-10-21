@@ -111,7 +111,7 @@ Al repo pilot de la web:
 |---|---|
 | 1 a 6 · Fitxa, pla, aprovació, implementació, PR i CI | ✅ 100 % |
 | 7 · El revisor | ⏳ 0 % |
-| 8 · Ajustos amb `@claude` | 🧪 90 %, en prova |
+| 8 · Ajustos amb `@claude` | ✅ 100 % |
 | 9 i 10 · Fusió i publicació | ✅ 100 % |
 
 **Properes peces:** el bucle de correcció automàtic (el que troba el revisor torna sol a l'agent, fins a 2 voltes, i a la tercera t'avisa) i la plantilla de projecte nou, perquè una webapp nova arrenqui amb tot el flux en una hora.
