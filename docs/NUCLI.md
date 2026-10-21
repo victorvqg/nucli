@@ -32,7 +32,7 @@ Canvis de la v0.1.4 (n642), el primer PR del pas 4 del flux del marcador (`pla-p
 7. **`tanca-sessio`** apunta a issues (`#N`), no crea mai cap `mtX` (proposa el text de l'issue perquè l'obris tu) i, a una branca d'issue, fa el commit amb ` (#N)` (§5.6).
 8. El bloc «Nucli» de `CLAUDE.md` i `AGENTS.md` diu els ids `#N`, i les línies de Claude, `nucli tasca N` (§5.1).
 
-v0.1.5: etiqueta creada per error al commit 8a7197e; té el codi de la 0.1.4 més la tanca-sessio. No la feu servir; la feina de la fitxa #2 és a la v0.1.6.
+v0.1.5: etiqueta creada per error al commit 8a7197e; té el codi de la 0.1.4 més la tanca-sessio. No la feu servir; la feina de la tasca #2 és a la v0.1.6.
 
 Canvis de la v0.1.6 (#2, n894, n897): el PR porta dues seccions automàtiques abans del rebut, perquè es pugui revisar sense obrir el diff. Les fa el nucli sol, amb git, el rebut i `nucli.json`: no executen res i no hi entra cap text d'un agent.
 1. **«Resum»**: l'arbre de fitxers de la branca contra el merge-base, amb l'estat (A/M/D/R) i les línies +/- per carpetes, també a la CI (§5.2).
@@ -42,7 +42,7 @@ Canvis de la v0.1.6 (#2, n894, n897): el PR porta dues seccions automàtiques ab
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
-El flux de treball a GitHub, de la fitxa a la web publicada, és a [FLUX.md](FLUX.md).
+El flux de treball a GitHub, de la tasca a la web publicada, és a [FLUX.md](FLUX.md).
 
 ---
 
@@ -116,7 +116,7 @@ tests/                 pytest (repos git temporals a tmp_path; gh i claude simul
 install.sh             --dry-run; enllaços + fusió de hooks amb còpia de seguretat
 README.md              resum: què és, el flux, la instal·lació, com començar una webapp i les ordres
 docs/NUCLI.md          aquest document
-docs/FLUX.md           el flux de treball a GitHub, de la fitxa a la web publicada
+docs/FLUX.md           el flux de treball a GitHub, de la tasca a la web publicada
 docs/exemples/         marcador.nucli.json (el nucli.json proposat per al marcador, §5.0)
 ```
 

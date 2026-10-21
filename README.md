@@ -4,17 +4,17 @@ El nucli fa que els agents de codi (Claude Code, Kimi, Codex) treballin igual i 
 
 ## El flux de treball
 
-Cada canvi neix d'una fitxa, que és un issue de GitHub, i arriba a la web per un PR que els agents de Claude escriuen i proven dins d'unes barreres que es comproven soles.
+Cada canvi neix d'una tasca, que és un issue de GitHub, i arriba a la web per un PR que els agents de Claude escriuen i proven dins d'unes barreres que es comproven soles.
 
 Tu només hi intervens en tres moments:
 
-1. **Escrius la fitxa:** el què i un criteri de fet que es pugui comprovar.
+1. **Escrius la tasca:** el què i un criteri de fet que es pugui comprovar.
 2. **Aproves el pla:** contestes les preguntes de l'agent i poses `estat: aprovada`.
 3. **Fusiones:** després de la CI i del revisor. Només tu pots, perquè `main` està protegida.
 
 ```mermaid
 flowchart TD
-    A["1 · Escrius la fitxa<br/>estat: nova"] --> Z{"Toca una zona<br/>delicada?"}
+    A["1 · Escrius la tasca<br/>estat: nova"] --> Z{"Toca una zona<br/>delicada?"}
     Z -- "sí" --> I["Camí interactiu<br/>tu + Claude Code"]
     Z -- "no" --> B["2 · L'agent proposa un pla<br/>estat: pla-proposat"]
     B --> C["3 · Respons i aproves<br/>estat: aprovada"]
@@ -26,7 +26,7 @@ flowchart TD
     G -- "defectes" --> H["8 · Ajustos amb @claude<br/>màxim 2 voltes per PR"]
     H --> F
     G -- "tot bé" --> J["9 · Fusiones"]
-    J --> K["10 · Es publica la web<br/>i la fitxa es tanca"]
+    J --> K["10 · Es publica la web<br/>i la tasca es tanca"]
 
     classDef tu stroke:#0E6A86,stroke-width:3px
     classDef agent stroke:#2C7A4B,stroke-width:2px
@@ -91,7 +91,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    - `checks` i `per_defecte` surten buits: s'omplen amb les ordres de lint, proves i build quan existeixin.
    - `regles` diu quins fitxers demanen quins checks.
    - A `risc` hi van les parts del codi que fan una fusió difícil de desfer (migracions, cobrament, dades…), perquè el PR ho avisi.
-   - `tasques` ha de ser `{"font": "github-issues", "branca": "issue/"}`, perquè les fitxes siguin issues de GitHub.
+   - `tasques` ha de ser `{"font": "github-issues", "branca": "issue/"}`, perquè les tasques siguin issues de GitHub.
 
 5. **Protegeix `main` i crea les etiquetes** · navegador o Terminal.
 
@@ -103,7 +103,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
    En un repo privat, la protecció de branques necessita GitHub Pro, Team o Enterprise. Amb el pla gratuït només funciona en repos públics ([documentació de GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)).
 
-   El check de la CI només s'hi pot posar quan la CI ja existeix, i la crea la fitxa de l'stack (pas 6). Fins aleshores, deixa'l per més tard: un check obligatori que no arriba mai bloca tots els PR.
+   El check de la CI només s'hi pot posar quan la CI ja existeix, i la crea la tasca de l'stack (pas 6). Fins aleshores, deixa'l per més tard: un check obligatori que no arriba mai bloca tots els PR.
 
    <details>
    <summary>El mateix amb <code>gh</code></summary>
@@ -150,16 +150,16 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    for l in tasca interactiu P1 P2 P3 revisa; do gh label create "$l"; done
    ```
 
-   Les zones delicades són de cada projecte: no hi ha una llista única. Cada projecte tria les seves segons el que el fa delicat. Per exemple, una web que cobra pot fer servir `infra`, `legal`, `producte`, `cobrament` i `dades`, i una app amb usuaris menors, `auth`, `bd`, `infra`, `menors` i `producte`. A la línia de `zona:`, posa-hi les del teu projecte. La llista ha de coincidir a dos llocs: a la configuració de l'agent del pla (pas 8) i a les etiquetes de zona del repo. Si no coincideixen, una fitxa delicada podria anar per l'agent en lloc del camí interactiu.
+   Les zones delicades són de cada projecte: no hi ha una llista única. Cada projecte tria les seves segons el que el fa delicat. Per exemple, una web que cobra pot fer servir `infra`, `legal`, `producte`, `cobrament` i `dades`, i una app amb usuaris menors, `auth`, `bd`, `infra`, `menors` i `producte`. A la línia de `zona:`, posa-hi les del teu projecte. La llista ha de coincidir a dos llocs: a la configuració de l'agent del pla (pas 8) i a les etiquetes de zona del repo. Si no coincideixen, una tasca delicada podria anar per l'agent en lloc del camí interactiu.
 
    L'etiqueta `revisa` només cal quan s'engegui l'agent revisor.
 
 6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
 
-   Les primeres fitxes les fas tu amb Claude Code, una cosa per fitxa i en aquest ordre: l'stack (amb la CI i els `checks` de `nucli.json`), el disseny base, l'accés d'usuaris, la base de dades i la publicació. Per a cada fitxa:
+   Les primeres tasques les fas tu amb Claude Code, una cosa per tasca i en aquest ordre: l'stack (amb la CI i els `checks` de `nucli.json`), el disseny base, l'accés d'usuaris, la base de dades i la publicació. Per a cada tasca:
    1. **Navegador:** obre-la com un issue.
    2. **Terminal:** `nucli tasca N` crea la branca `issue/N-…` i posa l'issue a `estat: en-curs`.
-   3. **Claude Code:** «Segueix amb la fitxa N». Claude fa el canvi i els commits, i segella el rebut.
+   3. **Claude Code:** «Segueix amb la tasca N». Claude fa el canvi i els commits, i segella el rebut.
    4. **Terminal:** `nucli finish` passa els checks, puja la branca i obre el PR amb `Closes #N`.
    5. **Navegador:** amb la CI en verd, fusiones.
 
@@ -215,5 +215,5 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
 ## Més detall
 
-- [docs/FLUX.md](docs/FLUX.md): el flux pas a pas, el camí interactiu, les barreres dels agents, els límits del dia i com escriure una bona fitxa.
+- [docs/FLUX.md](docs/FLUX.md): el flux pas a pas, el camí interactiu, les barreres dels agents, els límits del dia i com escriure una bona tasca.
 - [docs/NUCLI.md](docs/NUCLI.md): l'especificació del nucli, ordre per ordre, i el registre de canvis.

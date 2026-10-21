@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="El flux de treball del nucli: com Novak Code fa les webapps amb agents de Claude a GitHub, de la fitxa a la web publicada.">
+<meta name="description" content="El flux de treball del nucli: com Novak Code fa les webapps amb agents de Claude a GitHub, de la tasca a la web publicada.">
 <title>Flux de treball del nucli</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: una via vertical (el camí d'una fitxa) amb l'estat a cada node; a la dreta, el camí interactiu, les barreres i els límits. */
+/* Layout: una via vertical (el camí d'una tasca) amb l'estat a cada node; a la dreta, el camí interactiu, les barreres i els límits. */
 :root{
   --bg:#F3F6F7; --surface:#FFFFFF; --fg:#13202A; --muted:#55666F; --line:#D5DEE2;
   --accent:#0E6A86; --accent-soft:#E2F0F4;
@@ -223,7 +223,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
   <header>
     <span class="eyebrow">Novak Code · procés de treball del nucli</span>
     <h1>El flux de treball del nucli</h1>
-    <p class="lede">Així fa les webapps Novak Code, de la fitxa a la web publicada. Tu escrius la fitxa, aproves el pla i fusiones. La resta la fan els agents a GitHub, dins d'unes barreres que es comproven soles, amb el Mac apagat o encès. L'estat i els percentatges són els del repo pilot, la web de Novak Code.</p>
+    <p class="lede">Així fa les webapps Novak Code, de la tasca a la web publicada. Tu escrius la tasca, aproves el pla i fusiones. La resta la fan els agents a GitHub, dins d'unes barreres que es comproven soles, amb el Mac apagat o encès. L'estat i els percentatges són els del repo pilot, la web de Novak Code.</p>
     <div class="legend">
       <span><i class="dot ok"></i>Funciona</span>
       <span><i class="dot wip"></i>En curs</span>
@@ -239,7 +239,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
   <section class="about" aria-label="El procés i el que aporta">
     <div>
       <h2>Com és el procés</h2>
-      <p>Cada canvi neix d'una fitxa i d'un pla que tu aproves. Els agents de Claude l'escriuen a GitHub, el proven i obren el PR, sense necessitat del Mac. Vuit barreres limiten el que poden tocar, i uns canaris comproven de debò que funcionen. Només tu pots fusionar, i res arriba a la web sense passar les proves. Tot queda escrit: la fitxa, el pla, el PR i el rebut.</p>
+      <p>Cada canvi neix d'una tasca i d'un pla que tu aproves. Els agents de Claude l'escriuen a GitHub, el proven i obren el PR, sense necessitat del Mac. Vuit barreres limiten el que poden tocar, i uns canaris comproven de debò que funcionen. Només tu pots fusionar, i res arriba a la web sense passar les proves. Tot queda escrit: la tasca, el pla, el PR i el rebut.</p>
     </div>
     <div>
       <h2>Què t'aporta</h2>
@@ -257,7 +257,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
         <h3>Programes fixos que s'engeguen sols</h3>
         <p class="sub">Es diuen GitHub Actions. Cada un és un fitxer de <code>.github/workflows/</code>.</p>
         <ul>
-          <li><b>S'engega quan passa alguna cosa:</b> obres una fitxa, poses una etiqueta, puges un commit, escrius un comentari. O a una hora fixa, com el resum del matí.</li>
+          <li><b>S'engega quan passa alguna cosa:</b> obres una tasca, poses una etiqueta, puges un commit, escrius un comentari. O a una hora fixa, com el resum del matí.</li>
           <li><b>Fa sempre el mateix.</b> No pensa ni s'inventa res: amb la mateixa entrada, el mateix resultat.</li>
           <li><b>No gasta la subscripció de Claude.</b></li>
           <li><b>Fa:</b> canviar etiquetes, comptar els límits, la CI, la guarda, els canaris, obrir el PR amb l'app, els avisos i el resum per Telegram, i publicar la web.</li>
@@ -270,7 +270,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
         <h3>El model d'IA, que el robot crida en quatre moments</h3>
         <p class="sub">Els agents del pla, el que implementa, el que respon i el revisor.</p>
         <ul>
-          <li><b>Llegeix i entén text:</b> la fitxa, el codi, els teus comentaris.</li>
+          <li><b>Llegeix i entén text:</b> la tasca, el codi, els teus comentaris.</li>
           <li><b>Escriu:</b> un pla, codi o una resposta.</li>
           <li><b>Gasta la subscripció.</b> Per això hi ha els límits del dia, i un límit a 0 l'apaga.</li>
           <li><b>Treballa tancat:</b> només els fitxers permesos, sense terminal, sense claus i sense tocar els blindats.</li>
@@ -283,16 +283,16 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
 
   <div class="layout">
     <section aria-labelledby="t-cami">
-      <h2 id="t-cami">El camí d'una fitxa</h2>
+      <h2 id="t-cami">El camí d'una tasca</h2>
       <ol class="flow">
         <li class="step ok you">
           <span class="node">1</span>
           <div class="card">
             <div class="card-top"><span class="who">Tu · GitHub</span><span class="chip ok">funciona</span></div>
-            <h3>Escrius la fitxa</h3>
-            <p>Amb el formulari, des del mòbil o el Mac. La fitxa neix amb <code>estat: nova</code>.</p>
+            <h3>Escrius la tasca</h3>
+            <p>Amb el formulari, des del mòbil o el Mac. La tasca neix amb <code>estat: nova</code>.</p>
             <div class="fork">Si toca una zona delicada (infra, legal, producte, cobrament o dades), cap agent la fa: va pel <b>camí interactiu</b>.</div>
-            <div class="actors"><span class="by me">Tu escrius la fitxa</span><span class="by bot">Robot · posa l'etiqueta</span></div>
+            <div class="actors"><span class="by me">Tu escrius la tasca</span><span class="by bot">Robot · posa l'etiqueta</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
           </div>
         </li>
@@ -301,7 +301,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <div class="card">
             <div class="card-top"><span class="who">Agent del pla</span><span class="chip ok">funciona · B4</span></div>
             <h3>L'agent proposa un pla</h3>
-            <p>Llegeix la fitxa i el repo, sense poder escriure res. Deixa el pla en un comentari, amb les preguntes que té, i posa <code>estat: pla-proposat</code>.</p>
+            <p>Llegeix la tasca i el repo, sense poder escriure res. Deixa el pla en un comentari, amb les preguntes que té, i posa <code>estat: pla-proposat</code>.</p>
             <div class="meta"><span class="tag">4 plans al dia</span></div>
             <div class="actors"><span class="by ai">Claude · llegeix i escriu el pla</span><span class="by bot">Robot · etiqueta i límit</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
@@ -322,7 +322,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <div class="card">
             <div class="card-top"><span class="who">Agent que implementa</span><span class="chip ok">funciona · B5 B6</span></div>
             <h3>L'agent escriu el codi</h3>
-            <p>Treballa dins de les barreres, prova el canvi amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la fitxa.</p>
+            <p>Treballa dins de les barreres, prova el canvi amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la tasca.</p>
             <div class="meta"><span class="tag">2 implementacions al dia</span><span class="tag">0 = apagat</span></div>
             <div class="actors"><span class="by ai">Claude · escriu el codi</span><span class="by bot">Robot · proves, guarda i rebut</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
@@ -333,7 +333,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <div class="card">
             <div class="card-top"><span class="who">App de l'agent</span><span class="chip ok">funciona · B6</span></div>
             <h3>L'app obre el PR</h3>
-            <p>Puja una branca <code>issue/N-…</code>, mai forçada, i obre el PR amb <code>Closes #N</code>. La fitxa passa a <code>estat: pr</code> i t'arriba un avís per Telegram.</p>
+            <p>Puja una branca <code>issue/N-…</code>, mai forçada, i obre el PR amb <code>Closes #N</code>. La tasca passa a <code>estat: pr</code> i t'arriba un avís per Telegram.</p>
             <div class="actors"><span class="by bot">Robot · l'app obre el PR i t'avisa</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
           </div>
@@ -364,7 +364,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <div class="card">
             <div class="card-top"><span class="who">Agent que respon</span><span class="chip ok">funciona</span></div>
             <h3>Ajustos amb <code>@claude</code></h3>
-            <p>Escrius <code>@claude</code> al PR i l'agent hi afegeix un commit; a una fitxa, et respon amb text. Només fa cas de les teves mencions.</p>
+            <p>Escrius <code>@claude</code> al PR i l'agent hi afegeix un commit; a una tasca, et respon amb text. Només fa cas de les teves mencions.</p>
             <div class="meta"><span class="tag">màxim 2 voltes per PR</span></div>
             <div class="actors"><span class="by bot">Robot · mira qui ets, les voltes i el límit</span><span class="by ai">Claude · fa el commit o respon</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
@@ -386,7 +386,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <div class="card">
             <div class="card-top"><span class="who">GitHub · Cloudflare</span><span class="chip ok">funciona</span></div>
             <h3>Es publica la web</h3>
-            <p>La web surt a Cloudflare Pages i la fitxa es tanca sola pel <code>Closes</code>. Cada dia a les 10:45 t'arriba el resum per Telegram.</p>
+            <p>La web surt a Cloudflare Pages i la tasca es tanca sola pel <code>Closes</code>. Cada dia a les 10:45 t'arriba el resum per Telegram.</p>
             <div class="actors"><span class="by bot">Robot · publica, tanca i resumeix</span></div>
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
           </div>
@@ -397,10 +397,10 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
     <aside>
       <section class="panel" aria-labelledby="t-inter">
         <h2 id="t-inter">El camí interactiu</h2>
-        <p>Per a les fitxes amb zona delicada i per a les peces del mateix flux. Les fas tu amb Claude Code.</p>
+        <p>Per a les tasques amb zona delicada i per a les peces del mateix flux. Les fas tu amb Claude Code.</p>
         <ol class="mini">
           <li><span class="where">Terminal del Mac</span><code>nucli tasca N</code></li>
-          <li><span class="where">Caixa ❯ de Claude Code</span>«Segueix amb la fitxa N»</li>
+          <li><span class="where">Caixa ❯ de Claude Code</span>«Segueix amb la tasca N»</li>
           <li><span class="where">Terminal del Mac</span><code>nucli finish</code>, amb els checks manuals</li>
           <li><span class="where">Chrome</span>CI en verd i fusiones</li>
         </ol>
@@ -424,7 +424,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
       <section class="panel" aria-labelledby="t-lim">
         <h2 id="t-lim">Límits del dia</h2>
         <table>
-          <tr><td>Plans i respostes a fitxes</td><td>4</td></tr>
+          <tr><td>Plans i respostes a tasques</td><td>4</td></tr>
           <tr><td>Implementacions i ajustos</td><td>2</td></tr>
           <tr><td>Revisions</td><td>4</td></tr>
           <tr><td>Voltes d'ajust per PR</td><td>2</td></tr>
@@ -435,15 +435,15 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
   </div>
 
   <section class="block" aria-labelledby="t-ask" style="margin-top:34px">
-    <h2 id="t-ask">Com demanes Claude dins una fitxa o un PR</h2>
+    <h2 id="t-ask">Com demanes Claude dins una tasca o un PR</h2>
     <p class="intro">Escriu un comentari que comenci per <code>@claude</code>. El robot el llegeix, comprova que l'has escrit tu i, si tot quadra, crida l'agent que respon. Què fa depèn d'on l'escriguis.</p>
     <div class="duo">
       <div class="side ai">
-        <span class="by ai">A una fitxa (issue)</span>
+        <span class="by ai">A una tasca (issue)</span>
         <h3>Et respon amb text</h3>
         <dl class="spec">
-          <dt>Per a què</dt><dd>Preguntar o aclarir alguna cosa de la fitxa o del pla.</dd>
-          <dt>Què fa</dt><dd>Escriu una resposta a la fitxa. No toca cap fitxer.</dd>
+          <dt>Per a què</dt><dd>Preguntar o aclarir alguna cosa de la tasca o del pla.</dd>
+          <dt>Què fa</dt><dd>Escriu una resposta a la tasca. No toca cap fitxer.</dd>
           <dt>Gasta</dt><dd>1 dels 4 plans del dia.</dd>
         </dl>
         <div class="ex"><span class="at">@claude</span> per què proposes tocar aquest fitxer i no un altre?</div>
@@ -497,7 +497,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <p class="todo-you">Llegeix «Per revisar tu», mira el canvi a <b>Files changed</b> i espera els checks en verd. Si està bé, demanes el següent ajust o fusiones.</p>
         </div>
         <div class="variants">
-          <div><span class="by ai">A una fitxa</span><p>El títol és <b>«Resposta (agent)»</b> i només hi ha text, sense commit.</p></div>
+          <div><span class="by ai">A una tasca</span><p>El títol és <b>«Resposta (agent)»</b> i només hi ha text, sense commit.</p></div>
           <div><span class="by bot">Si no pot</span><p>El títol és <b>«No ajusto aquest PR»</b>, amb el motiu en una línia: el PR és tancat, no és de l'app, ja porta 2 voltes o s'ha acabat el límit del dia. No gasta res.</p></div>
         </div>
       </div>
@@ -506,18 +506,18 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
 
   <section class="block" aria-labelledby="t-et">
     <h2 id="t-et">Les etiquetes de GitHub: el tauler de comandament</h2>
-    <p class="intro">Les etiquetes són les marques de colors que porta cada fitxa i cada PR, a la columna de la dreta. El robot les llegeix per saber què ha de fer. Algunes les poses tu, i d'altres les posa el robot sol. Cada fitxa només té una etiqueta d'estat alhora.</p>
+    <p class="intro">Les etiquetes són les marques de colors que porta cada tasca i cada PR, a la columna de la dreta. El robot les llegeix per saber què ha de fer. Algunes les poses tu, i d'altres les posa el robot sol. Cada tasca només té una etiqueta d'estat alhora.</p>
 
     <div class="panel howto">
       <b>Com se'n posa o se'n treu una</b>
       <div class="ways">
-        <div><span class="where">Ordinador</span>A la fitxa o al PR, a la columna de la dreta, clica <b>Labels</b> (la rodeta ⚙). Marca o desmarca l'etiqueta i clica fora del menú: es desa sola.</div>
-        <div><span class="where">Mòbil · app de GitHub</span>Obre la fitxa, baixa fins a <b>Labels</b>, toca-ho i marca o desmarca l'etiqueta.</div>
-        <div><span class="where">Des de Telegram</span>Telegram només <b>t'avisa</b>: no pot canviar etiquetes. Toca l'enllaç de l'avís, la fitxa s'obre a l'app de GitHub, i allà hi poses l'etiqueta. <span class="chip fut">properament</span> botons «Obre la fitxa» i «Obre el PR» a cada avís.</div>
+        <div><span class="where">Ordinador</span>A la tasca o al PR, a la columna de la dreta, clica <b>Labels</b> (la rodeta ⚙). Marca o desmarca l'etiqueta i clica fora del menú: es desa sola.</div>
+        <div><span class="where">Mòbil · app de GitHub</span>Obre la tasca, baixa fins a <b>Labels</b>, toca-ho i marca o desmarca l'etiqueta.</div>
+        <div><span class="where">Des de Telegram</span>Telegram només <b>t'avisa</b>: no pot canviar etiquetes. Toca l'enllaç de l'avís, la tasca s'obre a l'app de GitHub, i allà hi poses l'etiqueta. <span class="chip fut">properament</span> botons «Obre la tasca» i «Obre el PR» a cada avís.</div>
       </div>
     </div>
 
-    <h3 class="sub3">La vida d'una fitxa, etiqueta a etiqueta</h3>
+    <h3 class="sub3">La vida d'una tasca, etiqueta a etiqueta</h3>
     <ol class="life">
       <li><code>estat: nova</code><span class="by me">el formulari</span></li>
       <li><code>estat: pla-proposat</code><span class="by bot">robot</span></li>
@@ -532,21 +532,21 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
       <table>
         <thead><tr><th>Etiqueta</th><th>Què vol dir</th><th>Qui la posa</th></tr></thead>
         <tbody>
-          <tr class="grp"><td colspan="3">Estat · on és la fitxa ara</td></tr>
-          <tr><td><code>estat: nova</code></td><td>Fitxa nova. L'agent del pla s'engega sol i n'escriu el pla.</td><td>El formulari. També <b>tu</b>, si vols un pla nou.</td></tr>
-          <tr><td><code>estat: pla-proposat</code></td><td>El pla és a la fitxa i espera les teves respostes.</td><td>Robot</td></tr>
+          <tr class="grp"><td colspan="3">Estat · on és la tasca ara</td></tr>
+          <tr><td><code>estat: nova</code></td><td>Tasca nova. L'agent del pla s'engega sol i n'escriu el pla.</td><td>El formulari. També <b>tu</b>, si vols un pla nou.</td></tr>
+          <tr><td><code>estat: pla-proposat</code></td><td>El pla és a la tasca i espera les teves respostes.</td><td>Robot</td></tr>
           <tr class="mine"><td><code>estat: aprovada</code></td><td>Has dit que sí al pla. L'agent que implementa comença.</td><td><b>Tu</b></td></tr>
           <tr><td><code>estat: en-curs</code></td><td>Algú hi treballa en una branca <code>issue/N-…</code>: l'agent, o tu amb <code>nucli tasca</code>.</td><td>Robot o el nucli</td></tr>
-          <tr><td><code>estat: bloquejada</code></td><td>La fitxa està aturada i espera alguna cosa. Llegeix l'últim comentari per saber què.</td><td>Robot o tu</td></tr>
+          <tr><td><code>estat: bloquejada</code></td><td>La tasca està aturada i espera alguna cosa. Llegeix l'últim comentari per saber què.</td><td>Robot o tu</td></tr>
           <tr><td><code>estat: pr</code></td><td>Hi ha un PR obert amb «Closes #N». Toca mirar-lo i fusionar-lo.</td><td>Robot</td></tr>
-          <tr class="grp"><td colspan="3">Tipus · quina mena de fitxa és</td></tr>
-          <tr><td><code>tasca</code></td><td>És una fitxa del flux, i el robot la té en compte.</td><td>El formulari</td></tr>
-          <tr class="mine"><td><code>interactiu</code></td><td>La fas tu amb Claude Code al Mac. Cap agent la toca i no gasta plans.</td><td><b>Tu</b>, o Claude Code quan obre la fitxa</td></tr>
+          <tr class="grp"><td colspan="3">Tipus · quina mena de tasca és</td></tr>
+          <tr><td><code>tasca</code></td><td>Marca que és una tasca del flux, i el robot la té en compte.</td><td>El formulari</td></tr>
+          <tr class="mine"><td><code>interactiu</code></td><td>La fas tu amb Claude Code al Mac. Cap agent la toca i no gasta plans.</td><td><b>Tu</b>, o Claude Code quan obre la tasca</td></tr>
           <tr class="grp"><td colspan="3">Prioritat i mida · les tries quan omples el formulari</td></tr>
           <tr><td><code>P1</code> <code>P2</code> <code>P3</code></td><td>Urgent, normal, quan es pugui. Diu què va primer.</td><td>El formulari</td></tr>
-          <tr><td><code>mida: S</code> <code>M</code> <code>L</code></td><td>Petita, mitjana o gran. Una L és massa gran per a un agent: parteix-la en fitxes més petites.</td><td>El formulari</td></tr>
+          <tr><td><code>mida: S</code> <code>M</code> <code>L</code></td><td>Petita, mitjana o gran. Una L és massa gran per a un agent: parteix-la en tasques més petites.</td><td>El formulari</td></tr>
           <tr class="grp"><td colspan="3">Zona · temes delicats</td></tr>
-          <tr><td><code>zona: infra</code> <code>legal</code> <code>producte</code> <code>cobrament</code> <code>dades</code></td><td>La fitxa toca un tema delicat. Cap agent la fa: va pel camí interactiu. Cada projecte té les seves zones.</td><td>El formulari, quan marques la casella</td></tr>
+          <tr><td><code>zona: infra</code> <code>legal</code> <code>producte</code> <code>cobrament</code> <code>dades</code></td><td>La tasca toca un tema delicat. Cap agent la fa: va pel camí interactiu. Cada projecte té les seves zones.</td><td>El formulari, quan marques la casella</td></tr>
           <tr class="grp"><td colspan="3">PR</td></tr>
           <tr class="mine"><td><code>revisa</code></td><td>Demana al revisor que llegeixi el PR i n'escrigui l'informe. Funcionarà amb el B8.</td><td><b>Tu</b></td></tr>
         </tbody>
@@ -556,7 +556,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
     <h3 class="sub3">Les que faràs servir tu</h3>
     <div class="uses">
       <div><b>Aprovar un pla</b><span>Contesta les preguntes en un comentari i, després, treu <code>estat: pla-proposat</code> i posa <code>estat: aprovada</code>.</span></div>
-      <div><b>Demanar un pla nou</b><span>Comenta què vols canviar, o edita la fitxa, i torna a posar <code>estat: nova</code>.</span></div>
+      <div><b>Demanar un pla nou</b><span>Comenta què vols canviar, o edita la tasca, i torna a posar <code>estat: nova</code>.</span></div>
       <div><b>Fer-la tu</b><span>Posa <code>interactiu</code> i, al Terminal del Mac, <code>nucli tasca N</code>.</span></div>
       <div><b>Demanar una revisió</b><span>Posa <code>revisa</code> al PR. Quan hi sigui el B8.</span></div>
     </div>
@@ -564,12 +564,12 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
   </section>
 
   <section class="touch" aria-label="On intervens tu">
-    <div><b>Escriure la fitxa</b><span>El què i el criteri de fet. Des del mòbil.</span></div>
+    <div><b>Escriure la tasca</b><span>El què i el criteri de fet. Des del mòbil.</span></div>
     <div><b>Aprovar el pla</b><span>Respondre les preguntes i posar l'etiqueta.</span></div>
     <div><b>Fusionar</b><span>Després de la CI i, quan hi sigui, del revisor.</span></div>
   </section>
 
-  <footer>Estat a 21 d'octubre de 2026. El B7 està fusionat i provat en calent: dues voltes d'ajust i la tercera aturada sola. Falten el B8a i el B8b, la fitxa d'infra, els botons dels avisos de Telegram i el bucle automàtic. Pàgina publicada amb GitHub Pages; la font és <code>docs/flux.html</code> del repo nucli.</footer>
+  <footer>Estat a 21 d'octubre de 2026. El B7 està fusionat i provat en calent: dues voltes d'ajust i la tercera aturada sola. Falten el B8a i el B8b, la tasca d'infra, els botons dels avisos de Telegram i el bucle automàtic. Pàgina publicada amb GitHub Pages; la font és <code>docs/flux.html</code> del repo nucli.</footer>
 </div>
 </body>
 </html>
