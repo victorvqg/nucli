@@ -114,7 +114,7 @@ skills/tanca-sessio/   SKILL.md
 plantilles/            CLAUDE.md, AGENTS.md, ESTAT.md, DECISIONS.md, TRAMPES.md, CONVENCIONS.md, ARQUITECTURA.md, nucli.json
 tests/                 pytest (repos git temporals a tmp_path; gh i claude simulats al PATH)
 install.sh             --dry-run; enllaços + fusió de hooks amb còpia de seguretat
-README.md              resum: què és, el flux, la instal·lació i les ordres
+README.md              resum: què és, el flux, la instal·lació, com començar una webapp i les ordres
 docs/NUCLI.md          aquest document
 docs/FLUX.md           el flux de treball a GitHub, de la fitxa a la web publicada
 docs/exemples/         marcador.nucli.json (el nucli.json proposat per al marcador, §5.0)

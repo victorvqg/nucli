@@ -57,6 +57,115 @@ Si un destí ja existeix i no és del nucli, no el toca i t'ho diu. Si mous el c
 
 Després, a cada repo: `nucli init --dry-run` per veure què farà, i `nucli init` per fer-ho. No fa commit: t'ho deixa per revisar.
 
+## Començar una webapp nova
+
+De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code** o al **navegador**.
+
+1. **Instal·la el nucli** · Terminal, un cop per Mac. És la instal·lació de l'apartat anterior. Si ja la tens, salta aquest pas.
+
+2. **Crea el repo, privat, i clona'l** · Terminal.
+
+   ```bash
+   gh repo create la-meva-webapp --private --add-readme --clone
+   cd la-meva-webapp
+   ```
+
+   També es pot fer al navegador, a github.com/new, marcant **Private** i **Add a README file**, i després clonar-lo al Terminal amb `git clone`. Cal el README perquè `main` tingui un primer commit i els PR hi tinguin base.
+
+3. **Prepara el repo amb el nucli i obre el primer PR** · Terminal i navegador.
+
+   ```bash
+   nucli init --dry-run        # diu què farà, sense escriure res
+   nucli init
+   cat .nucli/proposta/*.md    # el que et proposa sense aplicar-ho
+   git switch -c chore/nucli
+   git add -A
+   git commit -m "chore: prepara el repo amb el nucli"
+   nucli ship seal
+   nucli finish                # confirmes la revisió de configuració, puja la branca i obre el PR
+   ```
+
+   `init` crea els docs, `AGENTS.md`, `CLAUDE.md`, `nucli.json` i `.claude/settings.json`, i activa els hooks de git. El que hi ha a `.nucli/proposta/` no va a git: el que vulguis, aplica-ho tu a mà abans del commit. En un repo nou, sol ser `Bash(nucli secret:*)` al `deny` de `.claude/settings.json`. Després, al navegador, fusiona el PR.
+
+4. **Revisa `nucli.json`** · Claude Code, i el PR amb `nucli finish` al Terminal.
+   - `checks` i `per_defecte` surten buits: s'omplen amb les ordres de lint, proves i build quan existeixin.
+   - `regles` diu quins fitxers demanen quins checks.
+   - A `risc` hi van les zones delicades (migracions, cobrament, dades…), perquè el PR avisi que la fusió és difícil de desfer.
+   - `tasques` ha de ser `{"font": "github-issues", "branca": "issue/"}`, perquè les fitxes siguin issues de GitHub.
+
+5. **Protegeix `main` i crea les etiquetes** · navegador o Terminal.
+
+   Al navegador: **Settings → Rules → Rulesets → New ruleset → New branch ruleset**. Posa-hi un nom i **Enforcement status: Active**. A **Target branches**, tria **Add target → Include default branch**. Després marca:
+   - **Restrict deletions**;
+   - **Require a pull request before merging**, amb 0 aprovacions, perquè puguis fusionar els teus PR;
+   - **Require status checks to pass before merging**, amb el check obligatori de la CI;
+   - **Block force pushes**.
+
+   El check de la CI només s'hi pot posar quan la CI ja existeix, i la crea la fitxa de l'stack (pas 6). Fins aleshores, deixa'l per més tard: un check obligatori que no arriba mai bloca tots els PR.
+
+   <details>
+   <summary>El mateix amb <code>gh</code></summary>
+
+   Desa això com a `main.json`, amb el nom del check de la teva CI:
+
+   ```json
+   {
+     "name": "main",
+     "target": "branch",
+     "enforcement": "active",
+     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+     "rules": [
+       {"type": "deletion"},
+       {"type": "non_fast_forward"},
+       {"type": "pull_request", "parameters": {
+         "required_approving_review_count": 0,
+         "dismiss_stale_reviews_on_push": false,
+         "require_code_owner_review": false,
+         "require_last_push_approval": false,
+         "required_review_thread_resolution": false}},
+       {"type": "required_status_checks", "parameters": {
+         "strict_required_status_checks_policy": false,
+         "required_status_checks": [{"context": "NOM-DEL-CHECK-DE-LA-CI"}]}}
+     ]
+   }
+   ```
+
+   I, des de la carpeta del repo:
+
+   ```bash
+   gh api repos/{owner}/{repo}/rulesets -X POST --input main.json
+   ```
+
+   Si encara no tens CI, treu la regla `required_status_checks` i torna-la a posar quan existeixi.
+   </details>
+
+   Les etiquetes, al Terminal (o al navegador, a **Issues → Labels → New label**):
+
+   ```bash
+   for e in nova pla-proposat aprovada en-curs pr; do gh label create "estat: $e"; done
+   for z in infra legal producte cobrament dades; do gh label create "zona: $z"; done
+   ```
+
+6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
+
+   Les primeres fitxes les fas tu amb Claude Code, una cosa per fitxa i en aquest ordre: l'stack (amb la CI i els `checks` de `nucli.json`), el disseny base, l'accés d'usuaris, la base de dades i la publicació. Per a cada fitxa:
+   1. **Navegador:** obre-la com un issue.
+   2. **Terminal:** `nucli tasca N` crea la branca `issue/N-…` i posa l'issue a `estat: en-curs`.
+   3. **Claude Code:** «Segueix amb la fitxa N». Claude fa el canvi i els commits, i segella el rebut.
+   4. **Terminal:** `nucli finish` passa els checks, puja la branca i obre el PR amb `Closes #N`.
+   5. **Navegador:** amb la CI en verd, fusiones.
+
+   Quan la CI de l'stack hagi passat un cop, afegeix-ne el check a la regla de `main` (pas 5).
+
+7. **Engega els agents de GitHub** · navegador i Terminal, quan el projecte ja camina. Cal:
+   - els workflows dels agents i dels canaris, i l'`agents.json` amb els fitxers que poden editar;
+   - l'app de l'agent, instal·lada al repo, sense permís de workflows ni d'escriure a `main`;
+   - els entorns de GitHub (**Settings → Environments**), on van els secrets;
+   - els secrets, que els poses tu, amb `nucli secret NOM --env ENTORN` al Terminal o al navegador, i mai la IA;
+   - els límits del dia (`AGENTS_PLANS_DIA`, `AGENTS_IMPLEMENTACIONS_DIA` i `AGENTS_REVISIONS_DIA`) a 0, fins que els canaris surtin en verd.
+
+   **Avui aquest pas es fa a mà, copiant-ho del repo pilot.** La plantilla de projecte nou, que encara no existeix, el farà en una hora.
+
 ## Ordres
 
 | Ordre | Què fa |
