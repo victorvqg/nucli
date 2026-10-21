@@ -52,7 +52,7 @@ Les caselles amb la vora blava són els tres moments en què intervens tu. Les v
 | 4 | Agent que implementa | Escriu el codi dins de les barreres, el prova amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la tasca. |
 | 5 | App de l'agent | Puja una branca `issue/N-…`, mai forçada, i obre el PR amb `Closes #N`. La tasca passa a `estat: pr` i t'arriba un avís per Telegram. |
 | 6 | CI | El check obligatori: proves, lint, tipus, build i compliance. |
-| 7 | Agent revisor | Quan poses l'etiqueta `revisa`, escriu un informe amb el que està bé i els defectes que s'han d'arreglar. |
+| 7 | Agent revisor | S'engega sol als PR de l'agent, i en un PR teu quan hi poses l'etiqueta `revisa`. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar, i el veredicte del model només pot baixar. No crida el model si el PR només toca `docs/`, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, `.env`…) o és massa gran: ho diu al PR en una línia. |
 | 8 | Agent que respon | Escrius `@claude` al PR i l'agent hi afegeix un commit; a una tasca, et respon amb text. Només fa cas de les teves mencions. Màxim 2 voltes per PR. |
 | 9 | **Tu** | Fusiones. Només tu pots: `main` està protegida i l'app de l'agent no hi pot escriure. |
 | 10 | GitHub | La web es publica i la tasca es tanca sola pel `Closes`. Cada dia feiner t'arriba un resum per Telegram. |
@@ -134,7 +134,7 @@ Al repo pilot de la web:
 | Pas | Estat |
 |---|---|
 | 1 a 6 · Tasca, pla, aprovació, implementació, PR i CI | ✅ 100 % |
-| 7 · El revisor | 🔧 50 %, en curs (la part sense model ja hi és; falta el workflow) |
+| 7 · El revisor | 🔧 75 %, en curs (el workflow està fet, revisat i segellat; falta fusionar-lo i provar-lo en calent) |
 | 8 · Ajustos amb `@claude` | ✅ 100 % |
 | 9 i 10 · Fusió i publicació | ✅ 100 % |
 
