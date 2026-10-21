@@ -216,4 +216,5 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 ## Més detall
 
 - [docs/FLUX.md](docs/FLUX.md): el flux pas a pas, el camí interactiu, les barreres dels agents, els límits del dia i com escriure una bona tasca.
+- [La pàgina visual del flux](https://victorvqg.github.io/nucli/flux.html): el mateix flux en una sola pàgina, amb l'estat de cada pas, qui fa cada cosa (tu, el robot de GitHub o Claude), com demanes Claude amb `@claude` i les etiquetes. La font és [docs/flux.html](docs/flux.html).
 - [docs/NUCLI.md](docs/NUCLI.md): l'especificació del nucli, ordre per ordre, i el registre de canvis.
