@@ -82,7 +82,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    git add -A
    git commit -m "chore: prepara el repo amb el nucli"
    nucli ship seal
-   nucli finish                # confirmes la revisió de configuració, puja la branca i obre el PR
+   nucli finish                # confirmes, puja la branca i obre el PR
    ```
 
    `init` crea els docs, `AGENTS.md`, `CLAUDE.md`, `nucli.json` i `.claude/settings.json`, i activa els hooks de git. El que hi ha a `.nucli/proposta/` no va a git: el que vulguis, aplica-ho tu a mà abans del commit. En un repo nou, sol ser `Bash(nucli secret:*)` al `deny` de `.claude/settings.json`. Després, al navegador, fusiona el PR.
@@ -158,7 +158,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    Quan la CI de l'stack hagi passat un cop, afegeix-ne el check a la regla de `main` (pas 5).
 
 7. **Engega els agents de GitHub** · navegador i Terminal, quan el projecte ja camina. Cal:
-   - els workflows dels agents i dels canaris, i l'`agents.json` amb els fitxers que poden editar;
+   - els workflows dels agents i dels canaris, i el fitxer `agents.json`, amb els fitxers que poden editar;
    - l'app de l'agent, instal·lada al repo, sense permís de workflows ni d'escriure a `main`;
    - els entorns de GitHub (**Settings → Environments**), on van els secrets;
    - els secrets, que els poses tu, amb `nucli secret NOM --env ENTORN` al Terminal o al navegador, i mai la IA;
