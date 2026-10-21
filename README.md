@@ -90,7 +90,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 4. **Revisa `nucli.json`** · Claude Code, i el PR amb `nucli finish` al Terminal.
    - `checks` i `per_defecte` surten buits: s'omplen amb les ordres de lint, proves i build quan existeixin.
    - `regles` diu quins fitxers demanen quins checks.
-   - A `risc` hi van les zones delicades (migracions, cobrament, dades…), perquè el PR avisi que la fusió és difícil de desfer.
+   - A `risc` hi van les parts del codi que fan una fusió difícil de desfer (migracions, cobrament, dades…), perquè el PR ho avisi.
    - `tasques` ha de ser `{"font": "github-issues", "branca": "issue/"}`, perquè les fitxes siguin issues de GitHub.
 
 5. **Protegeix `main` i crea les etiquetes** · navegador o Terminal.
@@ -150,6 +150,10 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
    for l in tasca interactiu P1 P2 P3 revisa; do gh label create "$l"; done
    ```
 
+   Les zones delicades són de cada projecte: no hi ha una llista única. Cada projecte tria les seves segons el que el fa delicat. Per exemple, una web que cobra pot fer servir `infra`, `legal`, `producte`, `cobrament` i `dades`, i una app amb usuaris menors, `auth`, `bd`, `infra`, `menors` i `producte`. A la línia de `zona:`, posa-hi les del teu projecte. La llista ha de coincidir a dos llocs: a la configuració de l'agent del pla (pas 8) i a les etiquetes de zona del repo. Si no coincideixen, una fitxa delicada podria anar per l'agent en lloc del camí interactiu.
+
+   L'etiqueta `revisa` només cal quan s'engegui l'agent revisor.
+
 6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
 
    Les primeres fitxes les fas tu amb Claude Code, una cosa per fitxa i en aquest ordre: l'stack (amb la CI i els `checks` de `nucli.json`), el disseny base, l'accés d'usuaris, la base de dades i la publicació. Per a cada fitxa:
@@ -184,6 +188,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
 8. **Engega els agents de GitHub** · navegador i Terminal, quan el projecte ja camina. Cal:
    - els workflows dels agents i dels canaris, i el fitxer `agents.json`, amb els fitxers que poden editar;
+   - a la configuració de l'agent del pla, les zones delicades del projecte, les mateixes que les etiquetes de zona del repo (pas 5);
    - l'app de l'agent, instal·lada al repo, sense permís de workflows ni d'escriure a `main`;
    - els entorns de GitHub (**Settings → Environments**), on van els secrets;
    - els secrets, que els poses tu, amb `nucli secret NOM --env ENTORN` al Terminal o al navegador, i mai la IA;
