@@ -42,6 +42,8 @@ Canvis de la v0.1.6 (#2, n894, n897): el PR porta dues seccions automàtiques ab
 
 «nucli» és el meu kernel personal perquè els agents de codi (Claude Code, Kimi, Codex) treballin igual i de forma fiable a tots els meus projectes. S'inspira en Crux de Jorge Carrera. Són tres coses: uns **docs** amb el mateix nom a cada repo, una **porta amb rebut** (no es puja res sense haver passat els checks que toquen, i ho demostra un rebut segellat contra el commit) i un **cicle** que fan tots els agents. El que canvia de projecte a projecte és a `nucli.json`, i el nucli només hi posa el mecanisme.
 
+El flux de treball a GitHub, de la fitxa a la web publicada, és a [FLUX.md](FLUX.md).
+
 ---
 
 ## 1. Principis i com s'apliquen
@@ -112,7 +114,9 @@ skills/tanca-sessio/   SKILL.md
 plantilles/            CLAUDE.md, AGENTS.md, ESTAT.md, DECISIONS.md, TRAMPES.md, CONVENCIONS.md, ARQUITECTURA.md, nucli.json
 tests/                 pytest (repos git temporals a tmp_path; gh i claude simulats al PATH)
 install.sh             --dry-run; enllaços + fusió de hooks amb còpia de seguretat
+README.md              resum: què és, el flux, la instal·lació i les ordres
 docs/NUCLI.md          aquest document
+docs/FLUX.md           el flux de treball a GitHub, de la fitxa a la web publicada
 docs/exemples/         marcador.nucli.json (el nucli.json proposat per al marcador, §5.0)
 ```
 
