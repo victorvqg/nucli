@@ -176,7 +176,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
    Les zones delicades són de cada projecte: no hi ha una llista única. Cada projecte tria les seves segons el que el fa delicat. Per exemple, una web que cobra pot fer servir `infra`, `legal`, `producte`, `cobrament` i `dades`, i una app amb usuaris menors, `auth`, `bd`, `infra`, `menors` i `producte`. A la línia de `zona:`, posa-hi les del teu projecte. La llista ha de coincidir a dos llocs: a la configuració de l'agent del pla (pas 8) i a les etiquetes de zona del repo. Si no coincideixen, una tasca delicada podria anar per l'agent en lloc del camí interactiu.
 
-   L'etiqueta `revisa` serveix per demanar el revisor en un PR teu. Els PR de l'agent es revisen sols.
+   L'etiqueta `revisa` serveix per demanar el revisor en un PR teu. Els PR de l'agent es revisen sols quan són llestos: si l'agent l'obre en esborrany, prem «Ready for review».
 
 6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
 

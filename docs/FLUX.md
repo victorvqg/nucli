@@ -52,7 +52,7 @@ Les caselles amb la vora blava són els tres moments en què intervens tu. Les v
 | 4 | Agent que implementa | Escriu el codi dins de les barreres, el prova amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la tasca. |
 | 5 | App de l'agent | Puja una branca `issue/N-…`, mai forçada, i obre el PR amb `Closes #N`. La tasca passa a `estat: pr` i t'arriba un avís per Telegram. |
 | 6 | CI | El check obligatori: proves, lint, tipus, build i compliance. |
-| 7 | Agent revisor | S'engega sol als PR de l'agent, i en un PR teu quan hi poses l'etiqueta `revisa`. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar, i el veredicte del model només pot baixar. No crida el model si el PR només toca `docs/`, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, `.env`…) o és massa gran: ho diu al PR en una línia. |
+| 7 | Agent revisor | S'engega sol als PR de l'agent quan són llestos (si és un esborrany, prem «Ready for review»), i en un PR teu quan hi poses l'etiqueta `revisa`. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar, i el veredicte del model només pot baixar. No crida el model si el PR només toca `docs/`, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, `.env`…) o és massa gran: ho diu al PR en una línia. |
 | 8 | Agent que respon | Escrius `@claude` al PR i l'agent hi afegeix un commit; a una tasca, et respon amb text. Només fa cas de les teves mencions. Màxim 2 voltes per PR. |
 | 9 | **Tu** | Fusiones. Només tu pots: `main` està protegida i l'app de l'agent no hi pot escriure. |
 | 10 | GitHub | La web es publica i la tasca es tanca sola pel `Closes`. Cada dia feiner t'arriba un resum per Telegram. |
@@ -134,8 +134,8 @@ Al repo pilot de la web:
 | Pas | Estat |
 |---|---|
 | 1 a 6 · Tasca, pla, aprovació, implementació, PR i CI | ✅ 100 % |
-| 7 · El revisor | 🔧 75 %, en curs (el workflow està fet, revisat i segellat; falta fusionar-lo i provar-lo en calent) |
+| 7 · El revisor | 🧪 90 %, en prova (fusionat; ja revisa sol els PR de l'agent; falten dues proves en calent) |
 | 8 · Ajustos amb `@claude` | ✅ 100 % |
 | 9 i 10 · Fusió i publicació | ✅ 100 % |
 
-**Properes peces:** el bucle de correcció automàtic (el que troba el revisor torna sol a l'agent, fins a 2 voltes, i a la tercera t'avisa) i la plantilla de projecte nou, perquè una webapp nova arrenqui amb tot el flux en una hora.
+**Properes peces:** el bucle de correcció automàtic (el que troba el revisor torna sol a l'agent, fins a 2 voltes, i a la tercera t'avisa), els botons d'enllaç als avisos de Telegram i la plantilla de projecte nou, perquè una webapp nova arrenqui amb tot el flux en una hora.
