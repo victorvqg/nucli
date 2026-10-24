@@ -52,7 +52,7 @@ Les caselles amb la vora blava són els tres moments en què intervens tu. Les v
 | 4 | Agent que implementa | Escriu el codi dins de les barreres, el prova amb el nucli i en segella el rebut. Si una barrera salta, s'atura i ho diu a la tasca. |
 | 5 | App de l'agent | Puja una branca `issue/N-…`, mai forçada, i obre el PR amb `Closes #N`. La tasca passa a `estat: pr` i t'arriba un avís per Telegram. |
 | 6 | CI | El check obligatori: proves, lint, tipus, build i compliance. |
-| 7 | Agent revisor | S'engega sol als PR de l'agent quan són llestos (si és un esborrany, prem «Ready for review»), i en un PR teu quan hi poses l'etiqueta `revisa`. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar, i el veredicte del model només pot baixar. No crida el model si el PR només toca `docs/`, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, `.env`…) o és massa gran: ho diu al PR en una línia. |
+| 7 | Agent revisor | S'engega sol als PR de l'agent quan són llestos (si és un esborrany, prem «Ready for review»), i en un PR teu quan hi poses l'etiqueta `revisa`, si ve d'una branca `issue/N-…` d'una tasca teva. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar, i el veredicte del model només pot baixar. No crida el model si el PR només toca `docs/`, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, `.env`…) o és massa gran: ho diu al PR en una línia. |
 | 8 | Agent que respon | Escrius `@claude` al PR i l'agent hi afegeix un commit; a una tasca, et respon amb text. Només fa cas de les teves mencions. Màxim 2 voltes per PR. |
 | 9 | **Tu** | Fusiones. Només tu pots: `main` està protegida i l'app de l'agent no hi pot escriure. |
 | 10 | GitHub | La web es publica i la tasca es tanca sola pel `Closes`. Cada dia feiner t'arriba un resum per Telegram. |
@@ -127,15 +127,17 @@ Cada agent del flux és **Claude Code executat sense pantalla** (`claude -p`) di
 - **Petita:** mida S o M, i com a màxim 8 criteris.
 - **Marca la zona amb sinceritat.** Si toca una zona delicada del projecte, com els pagaments o les dades, marca-la, encara que sembli petit.
 
-## Estat d'implantació (octubre de 2026)
+## Estat d'implantació (24 d'octubre de 2026, 11:00)
 
 Al repo pilot de la web:
 
 | Pas | Estat |
 |---|---|
 | 1 a 6 · Tasca, pla, aprovació, implementació, PR i CI | ✅ 100 % |
-| 7 · El revisor | 🧪 90 %, en prova (fusionat; ja revisa sol els PR de l'agent; falten dues proves en calent) |
+| 7 · El revisor | ✅ 100 % (provat en calent el 24-10: un PR de l'agent, una frase prohibida en un PR teu i el revisor apagat amb el límit a 0) |
 | 8 · Ajustos amb `@claude` | ✅ 100 % |
 | 9 i 10 · Fusió i publicació | ✅ 100 % |
 
-**Properes peces:** el bucle de correcció automàtic (el que troba el revisor torna sol a l'agent, fins a 2 voltes, i a la tercera t'avisa), els botons d'enllaç als avisos de Telegram i la plantilla de projecte nou, perquè una webapp nova arrenqui amb tot el flux en una hora.
+**La fase B està acabada** (24-10): els 9 PR fusionats i totes les proves en calent fetes.
+
+**Properes peces:** els mods de sèrie de Claude Code amb la telemetria apagada (fet i segellat, falta pujar-lo), dues millores del revisor (que no es refiï del cos d'un PR antic i que no deixi un avís d'error fals), la tasca d'infra, el bucle de correcció automàtic (el que troba el revisor torna sol a l'agent, fins a 2 voltes, i a la tercera t'avisa), els botons d'enllaç als avisos de Telegram i la plantilla de projecte nou, perquè una webapp nova arrenqui amb tot el flux en una hora.

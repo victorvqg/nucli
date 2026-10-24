@@ -257,7 +257,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
     </div>
     <div class="progress">
       <div class="bar" aria-hidden="true"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></div>
-      <span>Fase B: 9 de 9 PR fusionats · el revisor ja revisa sol; falta acabar-ne la prova en calent</span>
+      <span>Fase B acabada: 9 de 9 PR fusionats i el revisor provat en calent (24-10, 11:00)</span>
     </div>
   </header>
 
@@ -373,16 +373,16 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
             <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
           </div>
         </li>
-        <li class="step wip">
+        <li class="step ok">
           <span class="node">7</span>
           <div class="card">
-            <div class="card-top"><span class="who">Agent revisor</span><span class="chip wip">en prova · B8b</span></div>
+            <div class="card-top"><span class="who">Agent revisor</span><span class="chip ok">funciona · B8b</span></div>
             <h3>El revisor llegeix el PR</h3>
-            <p>S'engega sol als PR de l'agent quan són llestos, i en un PR teu quan hi poses l'etiqueta <code>revisa</code>. Si l'agent obre el PR en esborrany, prem <b>Ready for review</b> i el revisor s'engega. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar. El veredicte del model només pot baixar, mai pujar.</p>
+            <p>S'engega sol als PR de l'agent quan són llestos, i en un PR teu quan hi poses l'etiqueta <code>revisa</code>, si ve d'una branca <code>issue/N-…</code> d'una tasca teva. Si l'agent obre el PR en esborrany, prem <b>Ready for review</b> i el revisor s'engega. Escriu un informe amb el que està bé i els defectes que s'han d'arreglar. El veredicte del model només pot baixar, mai pujar.</p>
             <div class="fork">No crida el model si el PR només toca <code>docs/</code>, porta una forma de clau, toca fitxers que el revisor no llegeix (workflows, configuració de Claude, <code>.env</code>…) o és massa gran. Ho diu al PR en una línia.</div>
-            <div class="meta"><span class="tag">4 revisions al dia</span></div>
+            <div class="meta"><span class="tag">4 revisions al dia</span><span class="tag">provat en calent el 24-10</span></div>
             <div class="actors"><span class="by bot">Robot · decideix si cal el model</span><span class="by ai">Claude · escriu l'informe</span></div>
-            <div class="pct"><span style="--p:90%"></span><b>90 %</b></div>
+            <div class="pct"><span style="--p:100%"></span><b>100 %</b></div>
           </div>
         </li>
         <li class="step ok">
@@ -574,7 +574,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
           <tr class="grp"><td colspan="3">Zona · temes delicats</td></tr>
           <tr><td><code>zona: infra</code> <code>legal</code> <code>producte</code> <code>cobrament</code> <code>dades</code></td><td>La tasca toca un tema delicat. Cap agent la fa: va pel camí interactiu. Cada projecte té les seves zones.</td><td>El formulari, quan marques la casella</td></tr>
           <tr class="grp"><td colspan="3">PR</td></tr>
-          <tr class="mine"><td><code>revisa</code></td><td>Demana el revisor en un PR teu. Els PR de l'agent es revisen sols quan són llestos.</td><td><b>Tu</b></td></tr>
+          <tr class="mine"><td><code>revisa</code></td><td>Demana el revisor en un PR teu, d'una branca <code>issue/N-…</code>. Els PR de l'agent es revisen sols quan són llestos.</td><td><b>Tu</b></td></tr>
         </tbody>
       </table>
     </div>
@@ -584,7 +584,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
       <div><b>Aprovar un pla</b><span>Contesta les preguntes en un comentari i, després, treu <code>estat: pla-proposat</code> i posa <code>estat: aprovada</code>.</span></div>
       <div><b>Demanar un pla nou</b><span>Comenta què vols canviar, o edita la tasca, i torna a posar <code>estat: nova</code>.</span></div>
       <div><b>Fer-la tu</b><span>Posa <code>interactiu</code> i, al Terminal del Mac, <code>nucli tasca N</code>.</span></div>
-      <div><b>Demanar una revisió</b><span>Posa <code>revisa</code> en un PR teu. Els de l'agent es revisen sols quan passen a llest.</span></div>
+      <div><b>Demanar una revisió</b><span>Posa <code>revisa</code> en un PR teu d'una branca <code>issue/N-…</code>. Els de l'agent es revisen sols quan passen a llest.</span></div>
     </div>
     <p class="note">Les etiquetes que posa el robot, com <code>pla-proposat</code>, <code>en-curs</code> i <code>pr</code>, no les canviïs a mà: el robot es podria confondre.</p>
   </section>
@@ -637,7 +637,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted)}
     <div><b>Fusionar</b><span>Després de la CI i del revisor.</span></div>
   </section>
 
-  <footer>Estat a 24 d'octubre de 2026. Els 9 PR de la fase B estan fusionats, i el revisor ja revisa sol els PR de l'agent (primera prova en calent feta el 24-10). Falten les dues últimes proves del revisor, la tasca d'infra, els botons dels avisos de Telegram, el bucle automàtic i la plantilla de projecte nou. Pàgina publicada amb GitHub Pages; la font és <code>docs/flux.html</code> del repo nucli.</footer>
+  <footer>Estat a 24 d'octubre de 2026, a les 11:00. La fase B està acabada: els 9 PR estan fusionats i el revisor està provat en calent amb tres proves (un PR de l'agent, una frase prohibida en un PR teu i el revisor apagat amb el límit a 0). Següent: els mods de sèrie amb la telemetria apagada (fet i segellat, falta pujar-lo), dues millores del revisor (que no es refiï del cos d'un PR antic i que no deixi un avís d'error fals), la tasca d'infra, els botons dels avisos de Telegram, el bucle automàtic i la plantilla de projecte nou. Pàgina publicada amb GitHub Pages; la font és <code>docs/flux.html</code> del repo nucli.</footer>
 </div>
 </body>
 </html>

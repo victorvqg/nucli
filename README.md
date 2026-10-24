@@ -60,6 +60,21 @@ Cada agent del flux és **Claude Code executat sense pantalla** (`claude -p`) di
 
 **Si muntes el flux per a un client**, ha d'anar amb la clau o la subscripció del client, mai amb la teva. Anthropic no permet oferir a tercers l'inici de sessió de claude.ai ni els límits d'una subscripció.
 
+## Estat (24 d'octubre de 2026, 11:00)
+
+Al repo pilot, la web de Novak Code, els deu passos del flux funcionen, i la fase B (els agents de GitHub) està acabada: 9 de 9 PR fusionats. El 24-10 es va provar en calent l'últim que faltava, el revisor, amb tres proves: un PR de l'agent, una frase prohibida en un PR teu, que la CI i el revisor van parar, i el revisor apagat amb el límit del dia a 0.
+
+| Què | Estat |
+|---|---|
+| Passos 1 a 10 al repo pilot | ✅ funcionen |
+| Fase B, els agents de GitHub | ✅ acabada el 24-10 |
+| Mods de sèrie de Claude Code acceptats i telemetria apagada | 🔧 fet i segellat, falta pujar-lo |
+| Millores del revisor: no refiar-se del cos d'un PR antic, i treure un avís d'error fals | 🔧 pla aprovat |
+| Tasca d'infra, botons als avisos de Telegram i bucle de correcció automàtic | ⏳ següent |
+| Plantilla de projecte nou | ⏳ després |
+
+El detall de cada pas és a [docs/FLUX.md](docs/FLUX.md#estat-dimplantació-24-doctubre-de-2026-1100), i la [pàgina visual](https://victorvqg.github.io/nucli/flux.html) ho ensenya tot junt.
+
 ## Instal·lació
 
 Cal un Mac amb `git`, `python3` (n'hi ha prou amb el 3.9 de macOS, perquè només fa servir la biblioteca estàndard) i Claude Code. Les ordres que parlen amb GitHub també necessiten `gh`.
@@ -176,7 +191,7 @@ De zero fins als agents. Cada pas diu on es fa: al **Terminal**, a **Claude Code
 
    Les zones delicades són de cada projecte: no hi ha una llista única. Cada projecte tria les seves segons el que el fa delicat. Per exemple, una web que cobra pot fer servir `infra`, `legal`, `producte`, `cobrament` i `dades`, i una app amb usuaris menors, `auth`, `bd`, `infra`, `menors` i `producte`. A la línia de `zona:`, posa-hi les del teu projecte. La llista ha de coincidir a dos llocs: a la configuració de l'agent del pla (pas 8) i a les etiquetes de zona del repo. Si no coincideixen, una tasca delicada podria anar per l'agent en lloc del camí interactiu.
 
-   L'etiqueta `revisa` serveix per demanar el revisor en un PR teu. Els PR de l'agent es revisen sols quan són llestos: si l'agent l'obre en esborrany, prem «Ready for review».
+   L'etiqueta `revisa` serveix per demanar el revisor en un PR teu. El PR ha de venir d'una branca `issue/N-…` d'una tasca teva (la que fa `nucli tasca N`): si no, el revisor no l'agafa. Els PR de l'agent es revisen sols quan són llestos: si l'agent l'obre en esborrany, prem «Ready for review».
 
 6. **Fes els fonaments pel camí interactiu** · navegador, Terminal i Claude Code.
 
